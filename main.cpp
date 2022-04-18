@@ -11,6 +11,12 @@ using namespace DirectX;
 #include<d3dcompiler.h>
 #pragma comment(lib,"d3dcompiler.lib")
 
+#define DIRECTINPUT_VERSION 0x0800 //DirectInputのバージョン指定
+#include <dinput.h>
+
+#pragma comment(lib,"dinput8.lib")
+#pragma comment(lib,"dxguid.lib")
+
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"dxgi.lib")
 
@@ -209,7 +215,28 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	result = device->CreateFence(fenceval, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 	
+	//DirectInputの初期化
+	IDirectInput8* directInput = nullptr;
+	result = DirectInput8Create(
+		w.hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8,
+		(void**)&directInput, nullptr);
+	assert(SUCCEEDED(result));
 
+	//キーボードデバイスの生成
+	IDirectInputDevice8* keyboard = nullptr;
+	result = directInput->CreateDevice(GUID_SysKeyboard, &keyboard, NULL);
+	assert(SUCCEEDED(result));
+
+	//入力データ形式のセット
+	result = keyboard->SetDataFormat(&c_dfDIKeyboard); // 標準形式
+	assert(SUCCEEDED(result));
+	
+	//排他制御レベルのセット
+	result = keyboard->SetCooperativeLevel(
+		hwnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
+	assert(SUCCEEDED(result));
+
+	
 	//DirectX初期化処理ここまで
 
 	//描画初期化処理
@@ -348,6 +375,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//ラスタライザの設定
 	pipelineDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;	//カリングしない
 	pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;	//ポリゴン内塗りつぶし
+	pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;	//ワイヤーフレーム
 	pipelineDesc.RasterizerState.DepthClipEnable = true;			//深度クリッピングを有効に
 
 	//ブレンドステート
@@ -406,6 +434,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			break;
 		}
 		//DirectX毎フレーム処理　ここから
+		//キーボード情報の取得開始
+		keyboard->Acquire();
+
+		//全キーの入力状態を取得する
+		BYTE key[256] = {};
+		keyboard->GetDeviceState(sizeof(key), key);
+
+		//数字の0キーが押されていたら
+		if(key[DIK_0])
+		{
+			OutputDebugStringA("Hit 0\n"); //出力ウインドウに「Hit 0」と表示
+		}
+
 
 		//バックバッファの番号を取得(2つなので０番か１番)
 		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
