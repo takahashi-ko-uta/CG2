@@ -19,6 +19,9 @@ using namespace DirectX;
 
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"dxgi.lib")
+//#include "Basic.hlsli"
+
+
 
 LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 	//メッセージに応じて固有の処理を行う
@@ -36,6 +39,7 @@ LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 
 //Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+#pragma region Windowsの初期化
 	//ウィンドウサイズ
 	const int window_width = 1280; //横幅
 	const int window_height = 720; //縦幅
@@ -70,10 +74,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	//ウィンドウを表示状態にする
 	ShowWindow(hwnd, SW_SHOW);
+#pragma endregion
 
 	MSG msg{};//メッセージ
 
-	//DirectX初期化処理ここから
+
+#pragma region デバックレイヤ
+	
 #ifdef _DEBUG
 	//デバッグレイヤーをオンに
 	ID3D12Debug* debugcontroller;
@@ -81,6 +88,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		debugcontroller->EnableDebugLayer();
 	}
 #endif // _DEBUG
+#pragma endregion
+
+#pragma region DirectXの初期化
+	//DirectX初期化処理ここから
 
 	HRESULT result;
 	ID3D12Device* device = nullptr;
@@ -91,6 +102,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ID3D12CommandQueue* commandQueue = nullptr;
 	ID3D12DescriptorHeap* rtvHeap = nullptr;
 
+#pragma region アダプタの列挙
 	//DXGIファクトリーの生成
 	result = CreateDXGIFactory(IID_PPV_ARGS(&dxgiFactory));
 	assert(SUCCEEDED(result));
@@ -110,6 +122,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		adapters.push_back(tmpAdapter);
 	}
 
+#pragma endregion
+
+#pragma region アダプタの選別
 	//妥当なアダプタを選別する
 	for (size_t i = 0; i < adapters.size(); i++) {
 		DXGI_ADAPTER_DESC3 adapterDesc;
@@ -123,7 +138,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			break;
 		}
 	}
+#pragma endregion
 
+#pragma region デバイスの生成
 	//対応レベルの配列
 	D3D_FEATURE_LEVEL levels[] = {
 		D3D_FEATURE_LEVEL_12_1,
@@ -144,7 +161,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			break;
 		}
 	}
+#pragma endregion
 
+#pragma region コマンドリストの生成
 	//コマンドアロケータを生成
 	result = device->CreateCommandAllocator(
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
@@ -157,13 +176,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		commandAllocator, nullptr,
 		IID_PPV_ARGS(&commandList));
 	assert(SUCCEEDED(result));
+#pragma endregion
 
+#pragma region コマンドキューの生成
 	//コマンドキューの設定
 	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
 	//コマンドキューを生成
 	result = device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue));
 	assert(SUCCEEDED(result));
+#pragma endregion
 
+#pragma region スワップチェーンの生成
 	//スワップチェーンの設定
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc{};
 	swapChainDesc.Width = 1280;
@@ -179,7 +202,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		commandQueue, hwnd, &swapChainDesc, nullptr, nullptr,
 		(IDXGISwapChain1**)&swapChain);
 	assert(SUCCEEDED(result));
+#pragma endregion
 
+#pragma region レンダービューターゲット
 	//デスクリプタヒープの設定
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;//レンダーターゲットビュー
@@ -208,13 +233,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//レンダーターゲットビューの生成
 		device->CreateRenderTargetView(backBuffers[i], &rtvDesc, rtvHandle);
 	}
+#pragma endregion
 
+#pragma region フェンス
 	//フェンスの生成
 	ID3D12Fence* fence = nullptr;
 	UINT64 fenceval = 0;
 
 	result = device->CreateFence(fenceval, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
-	
+#pragma endregion
+
+#pragma region DirectInputの初期化
 	//DirectInputの初期化
 	IDirectInput8* directInput = nullptr;
 	result = DirectInput8Create(
@@ -238,8 +267,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	
 	//DirectX初期化処理ここまで
+#pragma endregion
 
+#pragma endregion
+
+#pragma region 描画初期化処理
 	//描画初期化処理
+	
 	//定数バッファ用データ構造体(マテリアル)
 	struct ConstBufferDataMaterial{
 		XMFLOAT4 color;//色(RGBA)
@@ -283,17 +317,30 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	rootParam.Descriptor.ShaderRegister = 0;					//定数バッファ番号
 	rootParam.Descriptor.RegisterSpace = 0;						//デフォルト値
 	rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;	//全てのシェーダから見える
+	//頂点データ構造体
+	struct Vertex
+	{
+		XMFLOAT3 pos;// xyz座標
+		XMFLOAT2 uv;//  uv座標
+	};
 
 	//頂点データ
-	XMFLOAT3 vertices[] =
-	{
-		{-0.5f,-0.5f,0.0f},//左下　インデックス0
-		{-0.5f,+0.5f,0.0f},//左上　インデックス1
-		{+0.5f,-0.5f,0.0f},//右下　インデックス2
-		//{+0.5f,-0.5f,0.0f},//右下
-		//{-0.5f,+0.5f,0.0f},//左上
-		{+0.5f,+0.5f,0.0f},//右上　インデックス3
+	Vertex vertices[] = 
+	{//    x     y    z      u    v
+		{{-0.4f,-0.7f,0.0f},{0.0f,1.0f}},
+		{{-0.4f,+0.7f,0.0f},{0.0f,0.0f}},
+		{{+0.4f,-0.7f,0.0f},{1.0f,1.0f}},
+		{{+0.4f,+0.7f,0.0f},{1.0f,0.0f}},
 	};
+	//XMFLOAT3 vertices[] =
+	//{
+	//	{-0.5f,-0.5f,0.0f},//左下　インデックス0
+	//	{-0.5f,+0.5f,0.0f},//左上　インデックス1
+	//	{+0.5f,-0.5f,0.0f},//右下　インデックス2
+	//	//{+0.5f,-0.5f,0.0f},//右下
+	//	//{-0.5f,+0.5f,0.0f},//左上
+	//	{+0.5f,+0.5f,0.0f},//右上　インデックス3
+	//};
 	//インデックスデータ
 	uint16_t indices[] =
 	{
@@ -303,7 +350,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	
 	//頂点データ全体のサイズ = 頂点データ1つ分のサイズ * 頂点データの要素数
-	UINT sizeVB = static_cast<UINT>(sizeof(XMFLOAT3) * _countof(vertices));
+	UINT sizeVB = static_cast<UINT>(sizeof(vertices[0]) * _countof(vertices));
 
 	//頂点バッファの設定
 	D3D12_HEAP_PROPERTIES heapProp{};		//ヒープ設定
@@ -371,7 +418,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ibView.SizeInBytes = sizeIB;
 
 	//GPU上のバッファに対応した仮想メモリ（メインメモリ上）を取得
-	XMFLOAT3* vertMap = nullptr;
+	Vertex* vertMap = nullptr;
 	result = vertBuff->Map(0, nullptr, (void**)&vertMap);
 	assert(SUCCEEDED(result));
 	//全頂点に対して
@@ -389,8 +436,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//頂点バッファのサイズ
 	vbView.SizeInBytes = sizeVB;
 	//頂点1つ分のデータサイズ
-	vbView.StrideInBytes = sizeof(XMFLOAT3);
+	vbView.StrideInBytes = sizeof(vertices[0]);
 
+#pragma region 頂点シェーダー
 	ID3D10Blob* vsBlob = nullptr;							//頂点シェーダオブジェクト
 	ID3D10Blob* psBlob = nullptr;					        //ピクセルシェーダーオブジェクト
 	ID3D10Blob* errorBlob = nullptr;						//エラーオブジェクト
@@ -419,7 +467,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		OutputDebugStringA(error.c_str());
 		assert(0);
 	}
+#pragma endregion
 
+#pragma region ピクセルシェーダー
 	//ピクセルシェーダの読み込みとコンパイル
 	result = D3DCompileFromFile(
 		L"BasicPS.hlsl",									//シェーダファイル名
@@ -445,7 +495,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		OutputDebugStringA(error.c_str());
 		assert(0);
 	}
+#pragma endregion
 
+#pragma region 頂点レイアウト
 	//頂点レイアウト
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] =
 	{
@@ -454,8 +506,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			D3D12_APPEND_ALIGNED_ELEMENT,
 			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0
 		},//(1行で書いたほうが見やすい)
+		{
+			"TEXCOORD",0,DXGI_FORMAT_R32G32_FLOAT,0,
+			D3D12_APPEND_ALIGNED_ELEMENT,
+			D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0
+		},
 	};
+#pragma endregion
 
+#pragma region グラフィックパイプライン設定
 	//グラフィックスパイプライン設定
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 
@@ -537,20 +596,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	rootSigBlob->Release();
 	//パイプラインにルートシグネクチャをセット
 	pipelineDesc.pRootSignature = rootSignature;
+#pragma endregion
 
+#pragma region パイプラインステートの生成
 	//パイプランステートの生成
 	ID3D12PipelineState* pipelineState = nullptr;
 	result = device->CreateGraphicsPipelineState(&pipelineDesc, IID_PPV_ARGS(&pipelineState));
 	assert(SUCCEEDED(result));
 
+#pragma endregion
+
+#pragma endregion
 
 
-
-
-
-
+#pragma region ゲームループ
 	//ゲームループ
 	while (true) {
+#pragma region ウィンドウメッセージ処理
 		//メッセージがある？
 		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);//キー入力メッセージの処理
@@ -561,6 +623,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (msg.message == WM_QUIT) {
 			break;
 		}
+#pragma endregion
+
+#pragma region DirectX毎フレーム処理
 		//DirectX毎フレーム処理　ここから
 		//キーボード情報の取得開始
 		keyboard->Acquire();
@@ -575,7 +640,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			OutputDebugStringA("Hit 0\n"); //出力ウインドウに「Hit 0」と表示
 		}
 
-
+#pragma region リソースバリアの変更
 		//バックバッファの番号を取得(2つなので０番か１番)
 		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
 
@@ -585,13 +650,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
 		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		commandList->ResourceBarrier(1, &barrierDesc);
+#pragma endregion
 
+#pragma region 描画先の変更
 		//2.描画先の変更
 		// レンダーターゲットビューのハンドルを取得
 		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = rtvHeap->GetCPUDescriptorHandleForHeapStart();
 		rtvHandle.ptr += bbIndex * device->GetDescriptorHandleIncrementSize(rtvHeapDesc.Type);
 		commandList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+#pragma endregion
 
+#pragma region 画面クリア
 		//3.画面クリア　　　　　   
 		FLOAT clearColor[] = { 0.1f,0.25f,0.5f,0.0f };//青っぽい色
 		if(key[DIK_SPACE])//SPACEキーを押すとピンク色になる
@@ -602,7 +671,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}
 		
 		commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+#pragma endregion
+#pragma endregion
 
+#pragma region 描画コマンド
 		//4.描画コマンドここから
 		//ビューポート設定コマンド
 		D3D12_VIEWPORT viewport{};
@@ -650,7 +722,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		
 		// 描画コマンドここまで
+#pragma endregion
 
+#pragma region 画面の入れ替え
+#pragma region リソースバリアを元に戻す
 		//5.リソースバリアを戻す
 		barrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET; //描画状態から
 		barrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;        //表示状態へ
@@ -661,7 +736,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		//描画コマンド
 		commandList->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0);
+#pragma endregion
 
+#pragma region コマンドリストの実行
 		//命令のクローズ
 		result = commandList->Close();
 		assert(SUCCEEDED(result));
@@ -688,9 +765,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//再びコマンドリストをためる準備
 		result = commandList->Reset(commandAllocator, nullptr);
 		assert(SUCCEEDED(result));
-
+#pragma endregion
+#pragma endregion
 	}
 
+#pragma endregion
 	//ウィンドウクラスを登録解除
 	UnregisterClass(w.lpszClassName, w.hInstance);
 
