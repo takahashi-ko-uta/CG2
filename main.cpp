@@ -74,7 +74,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region デバッグレイヤ
 	MSG msg{};//メッセージ
-	
+
 #ifdef DEBUG
 //デバッグレイヤーをオンに
 	ID3D12Debug* debugController;
@@ -685,7 +685,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	resDesc.MipLevels = 1;
 	resDesc.SampleDesc.Count = 1;
 	resDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	
+
 	//インデックスバッファの生成
 	ID3D12Resource* indexBuff = nullptr;
 	result = device->CreateCommittedResource(
@@ -900,7 +900,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		commandList->SetGraphicsRootDescriptorTable(1, srvGpuHandle);
 
 
-		
+
 #pragma endregion
 
 #pragma region コマンドリストの実行
