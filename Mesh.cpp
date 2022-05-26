@@ -23,6 +23,7 @@ using namespace DirectX;
 #pragma comment(lib,"dxgi.lib")
 Mesh::Mesh()//コンストラクタ
 {
+
 }
 
 Mesh::~Mesh()//デストラクタ

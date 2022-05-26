@@ -241,7 +241,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//DirectX初期化処理ここまで
 
 	//描画初期化処理
-	Mesh::Initialize(device);
+	Mesh* mesh = new Mesh();
+
+	mesh->Initialize(device);
 #pragma region 描画処理の中身(一応残しておく)
 	////定数バッファ用データ構造体(マテリアル)
 	//struct ConstBufferDataMaterial {
