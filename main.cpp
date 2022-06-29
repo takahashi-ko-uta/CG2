@@ -247,10 +247,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 	Vertex vertices[] = {
-		{{ -50.0f,-50.0f,150.0f},{0.0f,1.0f}},
-		{{ -50.0f, 50.0f,150.0f},{0.0f,0.0f}},
-		{{  50.0f,-50.0f,150.0f},{1.0f,1.0f}},
-		{{  50.0f, 50.0f,150.0f},{1.0f,0.0f}},
+		{{ -50.0f,-50.0f,0.0f},{0.0f,1.0f}},
+		{{ -50.0f, 50.0f,0.0f},{0.0f,0.0f}},
+		{{  50.0f,-50.0f,0.0f},{1.0f,1.0f}},
+		{{  50.0f, 50.0f,0.0f},{1.0f,0.0f}},
 	};
 
 	//インデックスデータ
@@ -560,9 +560,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		assert(SUCCEEDED(result));
 	}
 
+	
 	//単位行列を代入
 	constMapTransform->mat = XMMatrixIdentity();
 
+
+	//値を書き込むと自動的に転送される
+	constMapMaterial->color = XMFLOAT4(1, 0, 0, 0.5f);
+#pragma endregion
+	
+#pragma region 射影変換
 	constMapTransform->mat.r[0].m128_f32[0] = 2.0f / window_width;
 	constMapTransform->mat.r[1].m128_f32[1] = -2.0f / window_height;
 	constMapTransform->mat.r[3].m128_f32[0] = -1.0f;
@@ -571,18 +578,30 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//投資投影行列の計算
 	XMMATRIX matProjection =
 		XMMatrixPerspectiveFovLH(
-		XMConvertToRadians(45.0f),
-		(float)window_width / window_height,
-		0.1f, 1000.0f
-	);
+			XMConvertToRadians(45.0f),
+			(float)window_width / window_height,
+			0.1f, 1000.0f
+		);
+
+	
+#pragma endregion
+
+#pragma region ビュー変換
+	//ビュー変換行列
+	XMMATRIX matView;
+
+	XMFLOAT3 eye(0, 0, -100);
+
+	XMFLOAT3 target(0, 0, 0);
+
+	XMFLOAT3 up(0, 1, 0);
+
+	matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
+#pragma endregion
 
 	//定数バッファに転送
-	constMapTransform->mat = matProjection;
+	constMapTransform->mat = matView * matProjection;
 
-	//値を書き込むと自動的に転送される
-	constMapMaterial->color = XMFLOAT4(1, 0, 0, 0.5f);
-#pragma endregion
-	
 	//横方向ピクセル数
 	const size_t textureWidth = 256;
 
@@ -717,6 +736,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ibView.Format = DXGI_FORMAT_R16_UINT;
 	ibView.SizeInBytes = sizeIB;
 
+	float angle = 0.0f;
 
 	//ゲームループ
 	while (true) {
@@ -732,6 +752,31 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region DirectX毎フレーム処理
 		//DirectX毎フレーム処理　ここから
+		//キーボード情報の取得
+		keyboard->Acquire();
+
+		//全キーの入力状態を取得する
+		BYTE keys[256] = {};
+		keyboard->GetDeviceState(sizeof(keys), keys);
+
+		if(keys[DIK_D] || keys[DIK_A])
+		{
+			if (keys[DIK_D])
+			{
+				angle += XMConvertToRadians(1.0f);
+			}
+			else if (keys[DIK_A])
+			{
+				angle -= XMConvertToRadians(1.0f);
+			}
+
+			//angleラジアンだけy軸まわりに回転。半径は-100
+			eye.x = -100 * sinf(angle);
+			eye.z = -100 * cosf(angle);
+
+			matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
+		}
+		constMapTransform->mat = matView * matProjection;
 
 
 		//全頂点に対して
