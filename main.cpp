@@ -244,24 +244,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		XMFLOAT3 pos;
 		XMFLOAT2 uv;
 	};
+
+
 	Vertex vertices[] = {
-		{{  0.0f,100.0f,0.0f},{0.0f,1.0f}},
-		{{  0.0f,  0.0f,0.0f},{0.0f,0.0f}},
-		{{100.0f,100.0f,0.0f},{1.0f,1.0f}},
-		{{100.0f,  0.0f,0.0f},{1.0f,0.0f}}
+		{{ -50.0f,-50.0f,150.0f},{0.0f,1.0f}},
+		{{ -50.0f, 50.0f,150.0f},{0.0f,0.0f}},
+		{{  50.0f,-50.0f,150.0f},{1.0f,1.0f}},
+		{{  50.0f, 50.0f,150.0f},{1.0f,0.0f}},
 	};
 
-	float transformX = 0.0f;
-	float transformY = 0.0f;
-	float rotation = 0.0f;
-	float scale = 1.0f;
-
-	float affin[3][3] = {//工程1
-		{1.0f, 0.0f, -100.0f},
-		{0.0f, 1.0f, -100.0f},
-		{0.0f, 0.0f, 1.0f}
-
-	};
 	//インデックスデータ
 	unsigned short indices[] = {
 		0,1,2,//三角形1つ目
@@ -577,6 +568,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	constMapTransform->mat.r[3].m128_f32[0] = -1.0f;
 	constMapTransform->mat.r[3].m128_f32[1] = 1.0f;
 
+	//投資投影行列の計算
+	XMMATRIX matProjection =
+		XMMatrixPerspectiveFovLH(
+		XMConvertToRadians(45.0f),
+		(float)window_width / window_height,
+		0.1f, 1000.0f
+	);
+
+	//定数バッファに転送
+	constMapTransform->mat = matProjection;
+
 	//値を書き込むと自動的に転送される
 	constMapMaterial->color = XMFLOAT4(1, 0, 0, 0.5f);
 #pragma endregion
@@ -731,88 +733,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma region DirectX毎フレーム処理
 		//DirectX毎フレーム処理　ここから
 
-#pragma region キーボード情報の取得
-		//キーボード情報の取得
-		keyboard->Acquire();
-
-		//全キーの入力状態を取得する
-		BYTE keys[256] = {};
-		keyboard->GetDeviceState(sizeof(keys), keys);
-
-		transformX = 0.0f;
-		transformY = 0.0f;
-		rotation = 0.0f;
-		scale = 1.0f;
-
-		//数字の0キーが押されたら
-		//平行移動
-		if (keys[DIK_W])
-		{
-			transformY += 0.1f;
-		}
-
-		if (keys[DIK_S])
-		{
-			transformY -= 0.1f;
-		}
-
-		if (keys[DIK_A])
-		{
-			transformX -= 0.1f;
-		}
-
-		if (keys[DIK_D])
-		{
-			transformX += 0.1f;
-		}
-
-		//拡大縮小
-		if (keys[DIK_Z])
-		{
-			scale += 0.1f;
-		}
-
-		if (keys[DIK_C])
-		{
-			scale -= 0.1f;
-		}
-
-		//回転
-		if (keys[DIK_Q])
-		{
-			rotation += PI / 32;
-		}
-		if (keys[DIK_E])
-		{
-			rotation -= PI / 32;
-		}
-		//アフィン行列の生成
-		affin[0][0] = scale * cos(rotation);
-		affin[0][1] = scale * -sin(rotation);
-		affin[0][2] = transformX;
-
-		affin[1][0] = scale * sin(rotation);
-		affin[1][1] = scale * cos(rotation);
-		affin[1][2] = transformY;
-
-		affin[2][0] = 0.0f;
-		affin[2][1] = 0.0f;
-		affin[2][2] = 1.0f;
-
-		//アフィン変換
-		for (int i = 0; i < _countof(vertices); i++)
-		{
-			vertices[i].pos.x = vertices[i].pos.x * affin[0][0] + vertices[i].pos.y * affin[0][1] + 1.0f * affin[0][2];
-			vertices[i].pos.y = vertices[i].pos.x * affin[1][0] + vertices[i].pos.y * affin[1][1] + 1.0f * affin[1][2];
-			vertices[i].pos.z = vertices[i].pos.x * affin[2][0] + vertices[i].pos.y * affin[2][1] + 1.0f * affin[2][2];
-		}
 
 		//全頂点に対して
 		for (int i = 0; i < _countof(vertices); i++) {
 			vertMap[i] = vertices[i];//座標をコピー
 		}
-#pragma endregion
-
 		//バックバッファの番号を取得(2つなので0番か1番)
 		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
 
