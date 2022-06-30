@@ -245,7 +245,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		XMFLOAT2 uv;
 	};
 
-
 	Vertex vertices[] = {
 		{{ -50.0f,-50.0f,0.0f},{0.0f,1.0f}},
 		{{ -50.0f, 50.0f,0.0f},{0.0f,0.0f}},
@@ -367,6 +366,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	{ "TEXCOORD",0,DXGI_FORMAT_R32G32_FLOAT,0,D3D12_APPEND_ALIGNED_ELEMENT,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 },
 	};
 
+#pragma region グラフィックスパイプライン
 	//グラフィックスパイプライン設定
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
 
@@ -384,19 +384,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	pipelineDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;//ポリゴン内塗りつぶし
 	pipelineDesc.RasterizerState.DepthClipEnable = true;//深度クリッピングを有効に
 
+#pragma region ブレンドステート
 	//ブレンドステート
 	D3D12_RENDER_TARGET_BLEND_DESC& blenddesc = pipelineDesc.BlendState.RenderTarget[0];
 	blenddesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-	//共通設定------------------------------------------------------------
+	//共通設定
 	blenddesc.BlendEnable = true;//ブレンドを有効にする
 	blenddesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;//加算
 	blenddesc.SrcBlendAlpha = D3D12_BLEND_ONE;//ソースの値を100％使う
 	blenddesc.DestBlendAlpha = D3D12_BLEND_ZERO;//デストの値を0％使う
-	
+
 	//半透明合成
 	blenddesc.BlendOp = D3D12_BLEND_OP_ADD;//加算
 	blenddesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;//ソースのアルファ値
 	blenddesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;//1.0f-ソースのアルファ値
+#pragma endregion
 
 	//頂点レイアウトの設定
 	pipelineDesc.InputLayout.pInputElementDescs = inputLayout;
@@ -409,13 +411,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	pipelineDesc.NumRenderTargets = 1;//描画対象は一つ
 	pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;//0~255指定のRGBA
 	pipelineDesc.SampleDesc.Count = 1;//1ピクセルにつき一回サンプリング
-
+#pragma endregion
+	
 	//デスクリプタレンジの設定
 	D3D12_DESCRIPTOR_RANGE descriptorRange{};
 	descriptorRange.NumDescriptors = 1;//一度の描画に使うテクスチャが１枚なので１
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descriptorRange.BaseShaderRegister = 0; //テクスチャレジスタ0番
 	descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
 #pragma region ルートパラメータ
 	//ルートパラメータの設定
 	D3D12_ROOT_PARAMETER rootParams[3] = {};
@@ -439,8 +443,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	rootParams[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 #pragma endregion
 
-	
-
+#pragma region テクスチャサンプラー
 	//テクスチャサンプラーの設定
 	D3D12_STATIC_SAMPLER_DESC samplerDesc{};
 	samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;//横繰り返し(タイリング)
@@ -452,7 +455,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	samplerDesc.MinLOD = 0.0f;//ミップマップ最小値
 	samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
 	samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;//ピクセルシェーダからのみ使用可能
+#pragma endregion
 
+#pragma region ルートシグネチャ
 	//ルートシグネチャ
 	ID3D12RootSignature* rootSignature;
 
@@ -474,6 +479,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	//パイプラインにルートシグネチャをセット
 	pipelineDesc.pRootSignature = rootSignature;
+#pragma endregion
 
 	//パイプラインステートの生成
 	ID3D12PipelineState* pipelineState = nullptr;
@@ -569,8 +575,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	//値を書き込むと自動的に転送される
 	constMapMaterial->color = XMFLOAT4(1, 0, 0, 0.5f);
-#pragma endregion
-	
+
 #pragma region 射影変換
 	constMapTransform->mat.r[0].m128_f32[0] = 2.0f / window_width;
 	constMapTransform->mat.r[1].m128_f32[1] = -2.0f / window_height;
@@ -585,7 +590,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			0.1f, 1000.0f
 		);
 
-	
+
 #pragma endregion
 
 #pragma region ビュー変換
@@ -609,13 +614,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	XMMATRIX matScala;
 	XMMATRIX matRot;
 	XMMATRIX matTrans;
-	
+
 	//スケーリング倍率
 	XMFLOAT3 scale;
 	//回転角
 	XMFLOAT3 rotation;
 	//座標
-	XMFLOAT3 position; 
+	XMFLOAT3 position;
 
 	scale = { 1.0f,0.5f,1.0f };
 	rotation = { 30.0f,15.0f,0.0f };
@@ -625,7 +630,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	//定数バッファに転送
 	constMapTransform->mat = matWorld * matView * matProjection;
-
+#pragma endregion
+	
 	//横方向ピクセル数
 	const size_t textureWidth = 256;
 
@@ -833,7 +839,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		matRot = XMMatrixRotationX(rotation.x);
 		matRot = XMMatrixRotationY(rotation.y);
 
-		XMMATRIX matTrans;
+		//XMMATRIX matTrans;
 		matTrans = XMMatrixTranslation(position.x, position.y, position.z);
 		
 		matWorld = XMMatrixIdentity();
