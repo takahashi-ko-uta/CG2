@@ -385,7 +385,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	pipelineDesc.RasterizerState.DepthClipEnable = true;//深度クリッピングを有効に
 
 	//ブレンドステート
-	//pipelineDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;//RBGA全てのチャンネルを描画
 	D3D12_RENDER_TARGET_BLEND_DESC& blenddesc = pipelineDesc.BlendState.RenderTarget[0];
 	blenddesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 	//共通設定------------------------------------------------------------
@@ -417,7 +416,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descriptorRange.BaseShaderRegister = 0; //テクスチャレジスタ0番
 	descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
+#pragma region ルートパラメータ
 	//ルートパラメータの設定
 	D3D12_ROOT_PARAMETER rootParams[3] = {};
 
@@ -438,6 +437,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	rootParams[2].Descriptor.ShaderRegister = 1;
 	rootParams[2].Descriptor.RegisterSpace = 0;
 	rootParams[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+#pragma endregion
+
+	
 
 	//テクスチャサンプラーの設定
 	D3D12_STATIC_SAMPLER_DESC samplerDesc{};
@@ -599,8 +601,30 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
 #pragma endregion
 
+#pragma region ワールド変換
+	//ワールド変換行列
+	XMMATRIX matWorld;
+	matWorld = XMMatrixIdentity();
+
+	XMMATRIX matScala;
+	XMMATRIX matRot;
+	XMMATRIX matTrans;
+	
+	//スケーリング倍率
+	XMFLOAT3 scale;
+	//回転角
+	XMFLOAT3 rotation;
+	//座標
+	XMFLOAT3 position; 
+
+	scale = { 1.0f,0.5f,1.0f };
+	rotation = { 30.0f,15.0f,0.0f };
+	position = { 0.0f,0.0f,0.0f };
+
+#pragma endregion
+
 	//定数バッファに転送
-	constMapTransform->mat = matView * matProjection;
+	constMapTransform->mat = matWorld * matView * matProjection;
 
 	//横方向ピクセル数
 	const size_t textureWidth = 256;
@@ -759,7 +783,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		BYTE keys[256] = {};
 		keyboard->GetDeviceState(sizeof(keys), keys);
 
-		if(keys[DIK_D] || keys[DIK_A])
+#pragma region ビュー変換
+		if (keys[DIK_D] || keys[DIK_A])
 		{
 			if (keys[DIK_D])
 			{
@@ -776,9 +801,49 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
 		}
-		constMapTransform->mat = matView * matProjection;
+#pragma endregion
+		
+#pragma region ワールド変換
+		if(keys[DIK_UP] || keys[DIK_DOWN] || keys[DIK_RIGHT] || keys[DIK_LEFT])
+		{
+			//座標を移動する
+			if(keys[DIK_UP])
+			{
+				position.z += 1.0f;
+			}
+			else if(keys[DIK_DOWN])
+			{
+				position.z -= 1.0f;
+			}
+			else if (keys[DIK_RIGHT])
+			{
+				position.x += 1.0f;
+			}
+			else if (keys[DIK_LEFT])
+			{
+				position.x -= 1.0f;
+			}
+			
+		}
+		
+		matScala = XMMatrixScaling(scale.x,scale.y,scale.z);
 
+		matRot = XMMatrixIdentity();
+		matRot = XMMatrixRotationZ(rotation.z);
+		matRot = XMMatrixRotationX(rotation.x);
+		matRot = XMMatrixRotationY(rotation.y);
 
+		XMMATRIX matTrans;
+		matTrans = XMMatrixTranslation(position.x, position.y, position.z);
+		
+		matWorld = XMMatrixIdentity();
+		matWorld *= matScala;
+		matWorld *= matRot;
+		matWorld *= matTrans;
+		constMapTransform->mat = matWorld * matView * matProjection;
+
+#pragma endregion
+		
 		//全頂点に対して
 		for (int i = 0; i < _countof(vertices); i++) {
 			vertMap[i] = vertices[i];//座標をコピー
