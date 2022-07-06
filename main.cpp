@@ -173,8 +173,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	assert(SUCCEEDED(result));
 #pragma endregion
  
-	
 #pragma region 深度バッファ
+
 	D3D12_RESOURCE_DESC depthResourceDesc{};
 	depthResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	depthResourceDesc.Width = window_width;
@@ -218,16 +218,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	device->CreateDepthStencilView(
 		depthBuff,
 		&dsvDesc,
-		dsvHeap->GetCPUDescriptorHandleForHeapStart()
-	);
-
-	//デプスステンシルステートの設定
-
+		dsvHeap->GetCPUDescriptorHandleForHeapStart());
 
 #pragma endregion
 
-
-
+#pragma region デスクリプタヒープ
 	//デスクリプタヒープの設定
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV; //レンダーターゲットビュー
@@ -241,7 +236,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;//シェーダーから見えるように
 	srvHeapDesc.NumDescriptors = kMaxSRVCount;
-
 	//設定をもとにSRV用デスクリプターヒープを生成
 	ID3D12DescriptorHeap* srvHeap = nullptr;
 	result = device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srvHeap));
@@ -253,11 +247,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	//デスクリプターヒープの生成
 	device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap));
+#pragma endregion
+	
+
+	
 
 	//バックバッファ
 	std::vector<ID3D12Resource*>backBuffers;
 	backBuffers.resize(swapChainDesc.BufferCount);
 
+#pragma region レンダーターゲットビュー
 	//スワップチェーンの全てのバッファについて処理する
 	for (size_t i = 0; i < backBuffers.size(); i++) {
 		//スワップチェーンからバッファを取得
@@ -274,6 +273,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//レンダーターゲットビューの生成
 		device->CreateRenderTargetView(backBuffers[i], &rtvDesc, rtvHandle);
 	}
+#pragma endregion
+	
 	//フェンスの生成
 	ID3D12Fence* fence = nullptr;
 	UINT64 fenceVal = 0;
@@ -309,21 +310,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		{{  5.0f, 5.0f,-5.0f},{1.0f,0.0f}},
 		
 		//後
-		{{ -5.0f,-5.0f,5.0f},{0.0f,1.0f}},
-		{{ -5.0f, 5.0f,5.0f},{0.0f,0.0f}},
-		{{  5.0f,-5.0f,5.0f},{1.0f,1.0f}},
-		{{  5.0f, 5.0f,5.0f},{1.0f,0.0f}},
+		{{ -5.0f,-5.0f, 5.0f},{0.0f,1.0f}},
+		{{ -5.0f, 5.0f, 5.0f},{0.0f,0.0f}},
+		{{  5.0f,-5.0f, 5.0f},{1.0f,1.0f}},
+		{{  5.0f, 5.0f, 5.0f},{1.0f,0.0f}},
 
 		//左
 		{{ -5.0f,-5.0f,-5.0f},{0.0f,1.0f}},
-		{{ -5.0f, 5.0f, 5.0f},{0.0f,0.0f}},
-		{{ -5.0f,-5.0f,-5.0f},{1.0f,1.0f}},
+		{{ -5.0f,-5.0f, 5.0f},{0.0f,0.0f}},
+		{{ -5.0f, 5.0f,-5.0f},{1.0f,1.0f}},
 		{{ -5.0f, 5.0f, 5.0f},{1.0f,0.0f}},
 
 		//右
 		{{  5.0f,-5.0f,-5.0f},{0.0f,1.0f}},
-		{{  5.0f, 5.0f, 5.0f},{0.0f,0.0f}},
-		{{  5.0f,-5.0f,-5.0f},{1.0f,1.0f}},
+		{{  5.0f,-5.0f, 5.0f},{0.0f,0.0f}},
+		{{  5.0f, 5.0f,-5.0f},{1.0f,1.0f}},
 		{{  5.0f, 5.0f, 5.0f},{1.0f,0.0f}},
 
 		//下
@@ -333,14 +334,34 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		{{  5.0f,-5.0f, 5.0f},{1.0f,0.0f}},
 
 		//上
-		{{ -5.0f,-5.0f,-5.0f},{0.0f,1.0f}},
-		{{ -5.0f,-5.0f, 5.0f},{0.0f,0.0f}},
-		{{  5.0f,-5.0f,-5.0f},{1.0f,1.0f}},
-		{{  5.0f,-5.0f, 5.0f},{1.0f,0.0f}},
+		{{ -5.0f, 5.0f,-5.0f},{0.0f,1.0f}},
+		{{ -5.0f, 5.0f, 5.0f},{0.0f,0.0f}},
+		{{  5.0f, 5.0f,-5.0f},{1.0f,1.0f}},
+		{{  5.0f, 5.0f, 5.0f},{1.0f,0.0f}},
 	};
 
 	
 	//インデックスデータ
+	unsigned short indices[] = {
+		//前
+		 0,  1,  2,//三角形1つ目
+		 2,  1,  3,//三角形2つ目
+		//後
+		 4,  5,  6,//三角形1つ目
+		 6,  5,  7,//三角形2つ目
+		//左
+		 8,  9, 10,
+		10,  9, 11,
+		////右
+		12, 13, 14,
+		14, 13, 15,
+		//下
+		16, 17, 18,
+		18, 17, 19,
+		//上
+		20, 21, 22,
+		22, 21, 23,
+	};
 	//unsigned short indices[] = {
 	//	//前
 	//	0, 1, 2,//三角形1つ目
@@ -348,40 +369,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//	//後
 	//	4, 5, 6,//三角形1つ目
 	//	5, 7, 6,//三角形2つ目
-	//	//左
-	//	2, 3, 7,
-	//	2, 7, 6,
-	//	////右
-	//	5, 4, 0,
-	//	5, 0, 1,
-	//	//下
-	//	0, 2, 6,
-	//	4, 6, 0,
-	//	//上
-	//	5, 1, 7,
-	//	1, 7, 3,
-	//};
-	unsigned short indices[] = {
-		//前
-		0, 1, 2,//三角形1つ目
-		1, 3, 2,//三角形2つ目
-		//後
-		4, 5, 6,//三角形1つ目
-		5, 7, 6,//三角形2つ目
 
-		//左
-		4, 5, 0,
-		5, 0, 1,
-		//右
-		2, 3, 6,
-		3, 6, 7,
-		//下
-		4, 0, 6,
-		0, 6, 2,
-		//上
-		1, 5, 3,
-		5, 3, 7,
-	};
+	//	//左
+	//	4, 5, 0,
+	//	5, 0, 1,
+	//	//右
+	//	2, 3, 6,
+	//	3, 6, 7,
+	//	//下
+	//	4, 0, 6,
+	//	0, 6, 2,
+	//	//上
+	//	1, 5, 3,
+	//	5, 3, 7,
+	//};
 	 
 
 	//頂点データ全体のサイズ=頂点データ一つ分のサイズ*頂点データの要素数
@@ -1009,6 +1010,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		rtvHandle.ptr += bbIndex * device->GetDescriptorHandleIncrementSize(rtvHeapDesc.Type);
 		D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dsvHeap->GetCPUDescriptorHandleForHeapStart();
 		commandList->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
+		//commandList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
 #pragma endregion
 
 #pragma region 画面クリア
