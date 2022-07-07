@@ -98,6 +98,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ID3D12CommandQueue* CommandQueue = nullptr;
 	ID3D12DescriptorHeap* rtvHeap = nullptr;
 #pragma region 初期化処理：アダプタの列拳
+
 #pragma region アダプタの列拳
 	//DXGIファクトリーの生成
 	result = CreateDXGIFactory(IID_PPV_ARGS(&dxgiFactory));
@@ -134,6 +135,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}
 	}
 #pragma endregion
+
 #pragma endregion
 
 #pragma region 初期化処理：デバイスの生成
@@ -253,10 +255,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		device->CreateRenderTargetView(backBuffers[i], &rtvDesc, rtvHandle);
 	}
 #pragma endregion
+
 #pragma endregion
 
 #pragma region 深度バッファ
 
+	//リソース設定
 	D3D12_RESOURCE_DESC depthResourceDesc{};
 	depthResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	depthResourceDesc.Width = window_width;
@@ -265,17 +269,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	depthResourceDesc.Format = DXGI_FORMAT_D32_FLOAT;
 	depthResourceDesc.SampleDesc.Count = 1;
 	depthResourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
+	
 	//深度値用ヒーププロパティ
 	D3D12_HEAP_PROPERTIES depthHeapProp{};
 	depthHeapProp.Type = D3D12_HEAP_TYPE_DEFAULT;
-
 	//深度値のクリア設定
 	D3D12_CLEAR_VALUE depthClearValue{};
 	depthClearValue.DepthStencil.Depth = 1.0f;
 	depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;
 
-	//リソース設定
+	//リソース生成
 	ID3D12Resource* depthBuff = nullptr;
 	result = device->CreateCommittedResource(
 		&depthHeapProp,
@@ -300,6 +303,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		depthBuff,
 		&dsvDesc,
 		dsvHeap->GetCPUDescriptorHandleForHeapStart());
+
 
 #pragma endregion
 
@@ -337,11 +341,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma endregion
 	
-
-
-
-
-	
 #pragma region 描画初期化処理
 
 #pragma region 頂点データ
@@ -371,16 +370,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		{{  5.0f, 5.0f, 5.0f},{1.0f,0.0f}},
 
 		//下
-		{{ -5.0f,-5.0f,-5.0f},{0.0f,1.0f}},
-		{{ -5.0f,-5.0f, 5.0f},{0.0f,0.0f}},
-		{{  5.0f,-5.0f,-5.0f},{1.0f,1.0f}},
-		{{  5.0f,-5.0f, 5.0f},{1.0f,0.0f}},
-
-		//上
 		{{ -5.0f, 5.0f,-5.0f},{0.0f,1.0f}},
 		{{ -5.0f, 5.0f, 5.0f},{0.0f,0.0f}},
 		{{  5.0f, 5.0f,-5.0f},{1.0f,1.0f}},
 		{{  5.0f, 5.0f, 5.0f},{1.0f,0.0f}},
+
+		//上
+		{{ -5.0f,-5.0f,-5.0f},{0.0f,1.0f}},
+		{{ -5.0f,-5.0f, 5.0f},{0.0f,0.0f}},
+		{{  5.0f,-5.0f,-5.0f},{1.0f,1.0f}},
+		{{  5.0f,-5.0f, 5.0f},{1.0f,0.0f}},
 	};
 
 	//頂点データ全体のサイズ=頂点データ一つ分のサイズ*頂点データの要素数
@@ -388,46 +387,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion
 
 #pragma region 頂点インデックス
-	//インデックスデータ
-	//unsigned short indices[] = {
-	//	//前
-	//	 0,  1,  2,//三角形1つ目
-	//	 2,  1,  3,//三角形2つ目
-	//	//後
-	//	 4,  5,  6,//三角形1つ目
-	//	 6,  5,  7,//三角形2つ目
-	//	//左
-	//	 8,  9, 10,
-	//	10,  9, 11,
-	//	//右
-	//	12, 13, 14,
-	//	14, 13, 15,
-	//	//下
-	//	16, 17, 18,
-	//	18, 17, 19,
-	//	//上
-	//	20, 21, 22,
-	//	22, 21, 23,
-	//};
 	unsigned short indices[] = {
+		
 		//前
 		 0,  1,  2,//三角形1つ目
 		 1,  2,  3,//三角形2つ目
 		//後
 		 4,  5,  6,//三角形1つ目
 		 5,  6,  7,//三角形2つ目
-		//左
-		 8,  9, 10,
-		 9, 10, 11,
-		//右
-		12, 13, 14,
-		13, 14, 15,
-		//下
-		16, 17, 18,
-		17, 18, 19,
-		//上
-		20, 21, 22,
-		21, 22, 23,
+		////左
+		// 8,  9, 10,
+		// 9, 10, 11,
+		////右
+		//12, 13, 14,
+		//13, 14, 15,
+		////下
+		//16, 17, 18,
+		//17, 18, 19,
+		////上
+		//20, 21, 22,
+		//21, 22, 23,
 	};
 #pragma endregion
 
@@ -613,20 +592,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	pipelineDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 	pipelineDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
-	//その他の設定
-	pipelineDesc.NumRenderTargets = 1;//描画対象は一つ
-	pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;//0~255指定のRGBA
-	pipelineDesc.SampleDesc.Count = 1;//1ピクセルにつき一回サンプリング
-
-
-
-
 	//デスクリプタレンジの設定
 	D3D12_DESCRIPTOR_RANGE descriptorRange{};
 	descriptorRange.NumDescriptors = 1;//一度の描画に使うテクスチャが１枚なので１
 	descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	descriptorRange.BaseShaderRegister = 0; //テクスチャレジスタ0番
 	descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+	//その他の設定
+	pipelineDesc.NumRenderTargets = 1;//描画対象は一つ
+	pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;//0~255指定のRGBA
+	pipelineDesc.SampleDesc.Count = 1;//1ピクセルにつき一回サンプリング
 
 #pragma region ルートパラメータ
 	//ルートパラメータの設定
@@ -688,9 +664,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//パイプラインにルートシグネチャをセット
 	pipelineDesc.pRootSignature = rootSignature;
 #pragma endregion
-
-
-
 
 	//パイプラインステートの生成
 	ID3D12PipelineState* pipelineState = nullptr;
@@ -1105,6 +1078,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//深度ステンシルビュー用デスクリプタヒープのハンドルを取得
 		D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dsvHeap->GetCPUDescriptorHandleForHeapStart();
 		commandList->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
+
+		//commandList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
 #pragma endregion
 
 #pragma region 画面クリアコマンド
@@ -1226,7 +1201,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion
 
 #pragma endregion
-
 
 	}
 	//ウィンドウクラスの登録解除
