@@ -18,6 +18,11 @@ using namespace DirectX;
 #include<DirectXTex.h>
 const float PI = 3.141592f;
 
+#include "3Dobject.h"
+
+
+
+
 #pragma region ウィンドウプロシージャ
 //ウィンドウプロシージャ
 LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
@@ -707,15 +712,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion
 
 #pragma region 定数バッファ
-	//定数バッファ用データ構造体(マテリアル)
-	struct ConstBufferDataMaterial {
-		XMFLOAT4 color;//色(RGBA)
-	};
+	
 
-	//定数バッファ用データ構造体（3D変換行列)
-	struct ConstBufferDataTransform {
-		XMMATRIX mat; //3D変換行列
-	};
 
 #pragma region Material
 	//ヒープ設定
@@ -756,77 +754,103 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region Transform
 
-	ID3D12Resource* constBuffTransform0 = nullptr;
-	ConstBufferDataTransform* constMapTransform0 = nullptr;
+	//3Dオブジェクトの数
+	const size_t kObjectConut = 50;
+	//3Dオブジェクトの配列
+	Object3d object3ds[kObjectConut];
+
+
+	for(int i = 0;i < _countof(object3ds);i++)
 	{
-		//ヒープ設定
-		D3D12_HEAP_PROPERTIES cbHeapProp{};
-		cbHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;//GPUへの転送用
-
-		//リソース設定
-		D3D12_RESOURCE_DESC cbResourceDesc{};
-		cbResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		cbResourceDesc.Width = (sizeof(ConstBufferDataTransform) + 0xff) & ~0xff;
-		cbResourceDesc.Height = 1;
-		cbResourceDesc.DepthOrArraySize = 1;
-		cbResourceDesc.MipLevels = 1;
-		cbResourceDesc.SampleDesc.Count = 1;
-		cbResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-
-		//定数バッファの生成
-		result = device->CreateCommittedResource(
-			&cbHeapProp,//ヒープ設定
-			D3D12_HEAP_FLAG_NONE,
-			&cbResourceDesc,//リソース設定
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&constBuffTransform0));
-		assert(SUCCEEDED(result));
-
-		//定数バッファのマッピング
-		result = constBuffTransform0->Map(0, nullptr, (void**)&constMapTransform0);//マッピング
-		assert(SUCCEEDED(result));
+		//初期化
+		InitializeObject3d(&object3ds[i], device);
+		//ここからは親子構造サンプル
+		//先頭以外なら
+		if(i > 0)
+		{
+			//1つ前のオブジェクトを親オブジェクトとする
+			object3ds[i].parent = &object3ds[i - 1];
+			//親オブジェクトの9割の大きさ
+			object3ds[i].scale = { 0.9f,0.9f,0.9f };
+			//親オブジェクトに対してZ軸まわりに30度回転
+			object3ds[i].rotation = { 0.0f,0.0f,XMConvertToRadians(30.0f) };
+			//親オブジェクトに対してｚ方向-8.0ずらす
+			object3ds[i].position = { 0.0f,0.0f,-8.0f };
+		}
 	}
 
-	ID3D12Resource* constBuffTransform1 = nullptr;
-	ConstBufferDataTransform* constMapTransform1 = nullptr;
+
+	//ID3D12Resource* constBuffTransform0 = nullptr;
+	//ConstBufferDataTransform* constMapTransform0 = nullptr;
 	{
-		//ヒープ設定
-		D3D12_HEAP_PROPERTIES cbHeapProp{};
-		cbHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;//GPUへの転送用
+	//	//ヒープ設定
+	//	D3D12_HEAP_PROPERTIES cbHeapProp{};
+	//	cbHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;//GPUへの転送用
 
-		//リソース設定
-		D3D12_RESOURCE_DESC cbResourceDesc{};
-		cbResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-		cbResourceDesc.Width = (sizeof(ConstBufferDataTransform) + 0xff) & ~0xff;
-		cbResourceDesc.Height = 1;
-		cbResourceDesc.DepthOrArraySize = 1;
-		cbResourceDesc.MipLevels = 1;
-		cbResourceDesc.SampleDesc.Count = 1;
-		cbResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	//	//リソース設定
+	//	D3D12_RESOURCE_DESC cbResourceDesc{};
+	//	cbResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	//	cbResourceDesc.Width = (sizeof(ConstBufferDataTransform) + 0xff) & ~0xff;
+	//	cbResourceDesc.Height = 1;
+	//	cbResourceDesc.DepthOrArraySize = 1;
+	//	cbResourceDesc.MipLevels = 1;
+	//	cbResourceDesc.SampleDesc.Count = 1;
+	//	cbResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-		//定数バッファの生成
-		result = device->CreateCommittedResource(
-			&cbHeapProp,//ヒープ設定
-			D3D12_HEAP_FLAG_NONE,
-			&cbResourceDesc,//リソース設定
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&constBuffTransform1));
-		assert(SUCCEEDED(result));
+		////定数バッファの生成
+		//result = device->CreateCommittedResource(
+		//	&cbHeapProp,//ヒープ設定
+		//	D3D12_HEAP_FLAG_NONE,
+		//	&cbResourceDesc,//リソース設定
+		//	D3D12_RESOURCE_STATE_GENERIC_READ,
+		//	nullptr,
+		//	IID_PPV_ARGS(&constBuffTransform0));
+		//assert(SUCCEEDED(result));
 
-		//定数バッファのマッピング
-		result = constBuffTransform1->Map(0, nullptr, (void**)&constMapTransform1);//マッピング
-		assert(SUCCEEDED(result));
+		////定数バッファのマッピング
+		//result = constBuffTransform0->Map(0, nullptr, (void**)&constMapTransform0);//マッピング
+		//assert(SUCCEEDED(result));
+	}
+
+	//ID3D12Resource* constBuffTransform1 = nullptr;
+	//ConstBufferDataTransform* constMapTransform1 = nullptr;
+	{
+		////ヒープ設定
+		//D3D12_HEAP_PROPERTIES cbHeapProp{};
+		//cbHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;//GPUへの転送用
+
+		////リソース設定
+		//D3D12_RESOURCE_DESC cbResourceDesc{};
+		//cbResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		//cbResourceDesc.Width = (sizeof(ConstBufferDataTransform) + 0xff) & ~0xff;
+		//cbResourceDesc.Height = 1;
+		//cbResourceDesc.DepthOrArraySize = 1;
+		//cbResourceDesc.MipLevels = 1;
+		//cbResourceDesc.SampleDesc.Count = 1;
+		//cbResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+		////定数バッファの生成
+		//result = device->CreateCommittedResource(
+		//	&cbHeapProp,//ヒープ設定
+		//	D3D12_HEAP_FLAG_NONE,
+		//	&cbResourceDesc,//リソース設定
+		//	D3D12_RESOURCE_STATE_GENERIC_READ,
+		//	nullptr,
+		//	IID_PPV_ARGS(&constBuffTransform1));
+		//assert(SUCCEEDED(result));
+
+		////定数バッファのマッピング
+		//result = constBuffTransform1->Map(0, nullptr, (void**)&constMapTransform1);//マッピング
+		//assert(SUCCEEDED(result));
 	}
 
 #pragma endregion
 
 	
 
-	//単位行列を代入
-	constMapTransform0->mat = XMMatrixIdentity();
-	constMapTransform1->mat = XMMatrixIdentity();
+	////単位行列を代入
+	//constMapTransform0->mat = XMMatrixIdentity();
+	//constMapTransform1->mat = XMMatrixIdentity();
 
 
 	//値を書き込むと自動的に転送される
@@ -860,48 +884,48 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion
 
 #pragma region ワールド変換
-	//ワールド変換行列
-	XMMATRIX matWorld;
+	////ワールド変換行列
+	//XMMATRIX matWorld;
 
-	XMMATRIX matScala;
+	//XMMATRIX matScala;
 
-	XMMATRIX matRot;
+	//XMMATRIX matRot;
 
-	XMMATRIX matTrans;
+	//XMMATRIX matTrans;
 
-	//スケーリング倍率
-	XMFLOAT3 scale;
-	//回転角
-	XMFLOAT3 rotation;
+	////スケーリング倍率
+	//XMFLOAT3 scale;
+	////回転角
+	//XMFLOAT3 rotation;
 
-	//座標
-	XMFLOAT3 position;
+	////座標
+	//XMFLOAT3 position;
 
-	scale = { 1.0f,1.0f,1.0f };
-	rotation = { 0.0f,0.0f,0.0f };
-	position = { 0.0f,0.0f,0.0f };
+	//scale = { 1.0f,1.0f,1.0f };
+	//rotation = { 0.0f,0.0f,0.0f };
+	//position = { 0.0f,0.0f,0.0f };
 
 
-	//ワールド変換行列
-	XMMATRIX matWorld1;
+	////ワールド変換行列
+	//XMMATRIX matWorld1;
 
-	XMMATRIX matScala1;
+	//XMMATRIX matScala1;
 
-	XMMATRIX matRot1;
+	//XMMATRIX matRot1;
 
-	XMMATRIX matTrans1;
+	//XMMATRIX matTrans1;
 
-	//スケーリング倍率
-	XMFLOAT3 scale1;
-	//回転角
-	XMFLOAT3 rotation1;
+	////スケーリング倍率
+	//XMFLOAT3 scale1;
+	////回転角
+	//XMFLOAT3 rotation1;
 
-	//座標
-	XMFLOAT3 position1;
+	////座標
+	//XMFLOAT3 position1;
 
-	scale1 = { 1.0f,1.0f,1.0f };
-	rotation1 = { 0.0f,PI / 4.0f,0.0f };
-	position1= { -20.0f,0.0f,0.0f };
+	//scale1 = { 1.0f,1.0f,1.0f };
+	//rotation1 = { 0.0f,PI / 4.0f,0.0f };
+	//position1= { -20.0f,0.0f,0.0f };
 
 
 #pragma endregion
@@ -1105,65 +1129,75 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion
 		
 #pragma region ワールド変換
-		if(keys[DIK_UP] || keys[DIK_DOWN] || keys[DIK_RIGHT] || keys[DIK_LEFT])
-		{
-			//座標を移動する
-			if(keys[DIK_UP])
-			{
-				position.z += 1.0f;
-			}
-			else if(keys[DIK_DOWN])
-			{
-				position.z -= 1.0f;
-			}
-			else if (keys[DIK_RIGHT])
-			{
-				position.x += 1.0f;
-			}
-			else if (keys[DIK_LEFT])
-			{
-				position.x -= 1.0f;
-			}
-			
-		}
+		//if(keys[DIK_UP] || keys[DIK_DOWN] || keys[DIK_RIGHT] || keys[DIK_LEFT])
+		//{
+		//	//座標を移動する
+		//	if(keys[DIK_UP])
+		//	{
+		//		position.z += 1.0f;
+		//	}
+		//	else if(keys[DIK_DOWN])
+		//	{
+		//		position.z -= 1.0f;
+		//	}
+		//	else if (keys[DIK_RIGHT])
+		//	{
+		//		position.x += 1.0f;
+		//	}
+		//	else if (keys[DIK_LEFT])
+		//	{
+		//		position.x -= 1.0f;
+		//	}
+		//	
+		//}
 		
-		matScala = XMMatrixScaling(scale.x,scale.y,scale.z);
+		//matScala = XMMatrixScaling(scale.x,scale.y,scale.z);
 
-		matRot = XMMatrixIdentity();
-		matRot = XMMatrixRotationZ(rotation.z);
-		matRot = XMMatrixRotationX(rotation.x);
-		matRot = XMMatrixRotationY(rotation.y);
+		//matRot = XMMatrixIdentity();
+		//matRot = XMMatrixRotationZ(rotation.z);
+		//matRot = XMMatrixRotationX(rotation.x);
+		//matRot = XMMatrixRotationY(rotation.y);
 
-		//XMMATRIX matTrans;
-		matTrans = XMMatrixTranslation(position.x, position.y, position.z);
+		////XMMATRIX matTrans;
+		//matTrans = XMMatrixTranslation(position.x, position.y, position.z);
+		//
+		//matWorld = XMMatrixIdentity();
+		//matWorld *= matScala;
+		//matWorld *= matRot;
+		//matWorld *= matTrans;
+
+		//constMapTransform0->mat = matWorld * matView * matProjection;
+
+
+		//matScala1 = XMMatrixScaling(scale1.x, scale1.y, scale1.z);
+
+		//matRot1 = XMMatrixIdentity();
+		//matRot1 = XMMatrixRotationZ(rotation1.z);
+		//matRot1 = XMMatrixRotationX(rotation1.x);
+		//matRot1 = XMMatrixRotationY(rotation1.y);
+
+		////XMMATRIX matTrans;
+		//matTrans1 = XMMatrixTranslation(position1.x, position1.y, position1.z);
+
+		//matWorld1 = XMMatrixIdentity();
+		//matWorld1 *= matScala1;
+		//matWorld1 *= matRot1;
+		//matWorld1 *= matTrans1;
+
+		//constMapTransform1->mat = matWorld1 * matView * matProjection;
+
 		
-		matWorld = XMMatrixIdentity();
-		matWorld *= matScala;
-		matWorld *= matRot;
-		matWorld *= matTrans;
-
-		constMapTransform0->mat = matWorld * matView * matProjection;
-
-
-		matScala1 = XMMatrixScaling(scale1.x, scale1.y, scale1.z);
-
-		matRot1 = XMMatrixIdentity();
-		matRot1 = XMMatrixRotationZ(rotation1.z);
-		matRot1 = XMMatrixRotationX(rotation1.x);
-		matRot1 = XMMatrixRotationY(rotation1.y);
-
-		//XMMATRIX matTrans;
-		matTrans1 = XMMatrixTranslation(position1.x, position1.y, position1.z);
-
-		matWorld1 = XMMatrixIdentity();
-		matWorld1 *= matScala1;
-		matWorld1 *= matRot1;
-		matWorld1 *= matTrans1;
-
-		constMapTransform1->mat = matWorld1 * matView * matProjection;
+		
 #pragma endregion
 		
-		
+		for (size_t i = 0; i < _countof(object3ds); i++)
+		{
+			UpdateObject3d(&object3ds[i], matView, matProjection);
+		}
+
+	
+
+
 		//バックバッファの番号を取得(2つなので0番か1番)
 		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
 
@@ -1260,14 +1294,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = srvHeap->GetGPUDescriptorHandleForHeapStart();
 		//SRVヒープの先頭にあるSRVをルートパラメータ1番に設定
 		commandList->SetGraphicsRootDescriptorTable(1, srvGpuHandle);
-		//定数バッファビュー(SRV)の設定コマンド
-		commandList->SetGraphicsRootConstantBufferView(2, constBuffTransform0->GetGPUVirtualAddress());
-		// 描画コマンド
-		commandList->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0);//全ての頂点を使って描画
-		//定数バッファビュー(SRV)の設定コマンド
-		commandList->SetGraphicsRootConstantBufferView(2, constBuffTransform1->GetGPUVirtualAddress());
-		// 描画コマンド
-		commandList->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0);//全ての頂点を使って描画
+
+
+		////定数バッファビュー(SRV)の設定コマンド
+		//commandList->SetGraphicsRootConstantBufferView(2, constBuffTransform0->GetGPUVirtualAddress());
+		//// 描画コマンド
+		//commandList->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0);//全ての頂点を使って描画
+		////定数バッファビュー(SRV)の設定コマンド
+		//commandList->SetGraphicsRootConstantBufferView(2, constBuffTransform1->GetGPUVirtualAddress());
+		//// 描画コマンド
+		//commandList->DrawIndexedInstanced(_countof(indices), 1, 0, 0, 0);//全ての頂点を使って描画
 
 #pragma endregion
 	
@@ -1320,3 +1356,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	return 0;
 }
+
+
+
