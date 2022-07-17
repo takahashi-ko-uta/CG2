@@ -50,7 +50,9 @@ struct Object3d
 
 };
 
-;
 void InitializeObject3d(Object3d* object, ID3D12Device* device);
 void UpdateObject3d(Object3d* object, XMMATRIX& matView, XMMATRIX& matProjection);
+void DrawObject3d(Object3d* object, ID3D12GraphicsCommandList* commandList, D3D12_VERTEX_BUFFER_VIEW& vbView,
+	D3D12_INDEX_BUFFER_VIEW& ibView, UINT numIndices);
+
 #pragma endregion

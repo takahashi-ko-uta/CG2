@@ -926,7 +926,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//scale1 = { 1.0f,1.0f,1.0f };
 	//rotation1 = { 0.0f,PI / 4.0f,0.0f };
 	//position1= { -20.0f,0.0f,0.0f };
-
+	for (size_t i = 0; i < _countof(object3ds); i++)
+	{
+		UpdateObject3d(&object3ds[i], matView, matProjection);
+	}
 
 #pragma endregion
 
@@ -1190,10 +1193,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		
 #pragma endregion
 		
-		for (size_t i = 0; i < _countof(object3ds); i++)
+		/*for (size_t i = 0; i < _countof(object3ds); i++)
 		{
 			UpdateObject3d(&object3ds[i], matView, matProjection);
-		}
+		}*/
 
 	
 
@@ -1295,7 +1298,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//SRVヒープの先頭にあるSRVをルートパラメータ1番に設定
 		commandList->SetGraphicsRootDescriptorTable(1, srvGpuHandle);
 
-
+		for (int i = 0; i < _countof(object3ds); i++)
+		{
+			DrawObject3d(&object3ds[i], commandList, vbView, ibView, _countof(indices));
+		}
 		////定数バッファビュー(SRV)の設定コマンド
 		//commandList->SetGraphicsRootConstantBufferView(2, constBuffTransform0->GetGPUVirtualAddress());
 		//// 描画コマンド
