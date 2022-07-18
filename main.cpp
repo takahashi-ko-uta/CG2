@@ -493,9 +493,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 
-
-
-
+	float R = 1.0f;
+	float G = 0.0f;
+	float B = 0.0f;
 
 	//ゲームループ
 	while (true) {
@@ -523,7 +523,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			OutputDebugStringA("Hit 0\n"); //出力ウインドウに「Hit 0」と表示
 		}
 
+		R -= 0.01f;
+		if (R <= 0)
+		{
+			R = 1.0f;
+		}
 
+		G += 0.01f;
+		if(G >= 1)
+		{
+			G = 0.0f;
+		}
+		constMapMaterial->color.x = R;
+		constMapMaterial->color.y = G;
+			
 		//バックバッファの番号を取得(2つなので０番か１番)
 		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
 
