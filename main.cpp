@@ -18,7 +18,6 @@ using namespace DirectX;
 #include<DirectXTex.h>
 const float PI = 3.141592f;
 
-#include "3dObject.h"
 #include <random>
 
 #include <wrl.h>
@@ -40,7 +39,33 @@ LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 }
 #pragma endregion
 
+//定数バッファ用データ構造体(マテリアル)
+struct ConstBufferDataMaterial {
+	XMFLOAT4 color;//色(RGBA)
+};
 
+//定数バッファ用データ構造体（3D変換行列)
+struct ConstBufferDataTransform {
+	XMMATRIX mat; //3D変換行列
+};
+
+struct Object3d
+{
+	//定数バッファ（行列用）
+	//ID3D12Resource* constBuffTransform;
+	ComPtr<ID3D12Resource>constBuffTransform;
+	//定数バッファマップ（行列用）
+	ConstBufferDataTransform* constMapTransform;
+	//アフィン変換情報
+	XMFLOAT3 scale = { 1,1,1 };
+	XMFLOAT3 rotation = { 0,0,0 };
+	XMFLOAT3 position = { 0,0,0 };
+	//ワールド変換行列
+	XMMATRIX matWorld;
+	//親オブジェクトへのポインタ
+	Object3d* parent = nullptr;
+
+};
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	OutputDebugStringA("Hello DirectX!!\n");
 
@@ -214,14 +239,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; //フリップ後は破棄
 	swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
+
+	ComPtr<IDXGISwapChain1>swapChain1;
+
 	//スワップチェーンの生成
 	result = dxgiFactory->CreateSwapChainForHwnd(
-		CommandQueue.Get(), hwnd, &swapChainDesc, nullptr, nullptr,
-		(IDXGISwapChain1**)&swapChain);
+		CommandQueue.Get(),
+		hwnd, 
+		&swapChainDesc,
+		nullptr,
+		nullptr,
+		&swapChain1);
 
-	/*result = dxgiFactory->CreateSwapChainForHwnd(
-		CommandQueue.Get(), hwnd, &swapChainDesc, nullptr, nullptr,
-		(ComPtr<IDXGISwapChain1>swapChain));*/
+	swapChain.As(&swapChain);
 
 	assert(SUCCEEDED(result));
 #pragma endregion
@@ -372,43 +402,44 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region 頂点データ
 	Vertex vertices[] = {
+		// x      y     z     法線  u     v
 		//前
-		{{ -5.0f,-5.0f,-5.0f},{},{0.0f,1.0f}},
-		{{ -5.0f, 5.0f,-5.0f},{},{0.0f,0.0f}},
-		{{  5.0f,-5.0f,-5.0f},{},{1.0f,1.0f}},
-		{{  5.0f, 5.0f,-5.0f},{},{1.0f,0.0f}},
+		{{-5.0f, -5.0f, -5.0f}, {}, {0.0f, 1.0f}}, // 左下
+		{{-5.0f,  5.0f, -5.0f}, {}, {0.0f, 0.0f}}, // 左上
+		{{ 5.0f, -5.0f, -5.0f}, {}, {1.0f, 1.0f}}, // 右下
+		{{ 5.0f,  5.0f, -5.0f}, {}, {1.0f, 0.0f}}, // 右上
 
 		//後
-		{{ -5.0f,-5.0f, 5.0f},{},{0.0f,1.0f}},
-		{{ -5.0f, 5.0f, 5.0f},{},{0.0f,0.0f}},
-		{{  5.0f,-5.0f, 5.0f},{},{1.0f,1.0f}},
-		{{  5.0f, 5.0f, 5.0f},{},{1.0f,0.0f}},
+		{{-5.0f,  5.0f,  5.0f}, {}, {0.0f, 0.0f}}, // 左上
+		{{-5.0f, -5.0f,  5.0f}, {}, {0.0f, 1.0f}}, // 左下
+		{{ 5.0f,  5.0f,  5.0f}, {}, {1.0f, 0.0f}}, // 右上
+		{{ 5.0f, -5.0f,  5.0f}, {}, {1.0f, 1.0f}}, // 右下
 
 		//左
-		{{ -5.0f,-5.0f,-5.0f},{},{0.0f,1.0f}},
-		{{ -5.0f,-5.0f, 5.0f},{},{0.0f,0.0f}},
-		{{ -5.0f, 5.0f,-5.0f},{},{1.0f,1.0f}},
-		{{ -5.0f, 5.0f, 5.0f},{},{1.0f,0.0f}},
+		{{-5.0f, -5.0f, -5.0f}, {}, {0.0f, 1.0f}}, // 左下
+		{{-5.0f, -5.0f,  5.0f}, {}, {0.0f, 0.0f}}, // 左上
+		{{-5.0f,  5.0f, -5.0f}, {}, {1.0f, 1.0f}}, // 右下
+		{{-5.0f,  5.0f,  5.0f}, {}, {1.0f, 0.0f}}, // 右上
 
 		//右
-		{{  5.0f,-5.0f,-5.0f},{},{0.0f,1.0f}},
-		{{  5.0f,-5.0f, 5.0f},{},{0.0f,0.0f}},
-		{{  5.0f, 5.0f,-5.0f},{},{1.0f,1.0f}},
-		{{  5.0f, 5.0f, 5.0f},{},{1.0f,0.0f}},
+		{{ 5.0f, -5.0f,  5.0f}, {}, {0.0f, 0.0f}}, // 左上
+		{{ 5.0f, -5.0f, -5.0f}, {}, {0.0f, 1.0f}}, // 左下
+		{{ 5.0f,  5.0f,  5.0f}, {}, {1.0f, 0.0f}}, // 右上
+		{{ 5.0f,  5.0f, -5.0f}, {}, {1.0f, 1.0f}}, // 右下
 
 		//下
-		{{ -5.0f, 5.0f,-5.0f},{},{0.0f,1.0f}},
-		{{ -5.0f, 5.0f, 5.0f},{},{0.0f,0.0f}},
-		{{  5.0f, 5.0f,-5.0f},{},{1.0f,1.0f}},
-		{{  5.0f, 5.0f, 5.0f},{},{1.0f,0.0f}},
+		{{-5.0f,  5.0f, -5.0f}, {}, {0.0f, 1.0f}}, // 左下
+		{{-5.0f,  5.0f,  5.0f}, {}, {0.0f, 0.0f}}, // 左上
+		{{ 5.0f,  5.0f, -5.0f}, {}, {1.0f, 1.0f}}, // 右下
+		{{ 5.0f,  5.0f,  5.0f}, {}, {1.0f, 0.0f}}, // 右上
 
 		//上
-		{{ -5.0f,-5.0f,-5.0f},{},{0.0f,1.0f}},
-		{{ -5.0f,-5.0f, 5.0f},{},{0.0f,0.0f}},
-		{{  5.0f,-5.0f,-5.0f},{},{1.0f,1.0f}},
-		{{  5.0f,-5.0f, 5.0f},{},{1.0f,0.0f}},
-	};
+		{{-5.0f, -5.0f,  5.0f}, {}, {0.0f, 0.0f}}, // 左上
+		{{-5.0f, -5.0f, -5.0f}, {}, {0.0f, 1.0f}}, // 左下
+		{{ 5.0f, -5.0f,  5.0f}, {}, {1.0f, 0.0f}}, // 右上
+		{{ 5.0f, -5.0f, -5.0f}, {}, {1.0f, 1.0f}}, // 右下
 
+	};
 	//頂点データ全体のサイズ=頂点データ一つ分のサイズ*頂点データの要素数
 	UINT sizeVB = static_cast<UINT>(sizeof(vertices[0]) * _countof(vertices));
 #pragma endregion
@@ -735,15 +766,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion
 
 #pragma region 定数バッファ
-	//定数バッファ用データ構造体(マテリアル)
-	struct ConstBufferDataMaterial {
-		XMFLOAT4 color;//色(RGBA)
-	};
 
-	////定数バッファ用データ構造体（3D変換行列)
-	//struct ConstBufferDataTransform {
-	//	XMMATRIX mat; //3D変換行列
-	//};
+
+	void InitializeObject3d(Object3d* object, ID3D12Device* device);
+	void UpdateObject3d(Object3d* object, XMMATRIX& matView, XMMATRIX& matProjection);
+	void DrawObject3d(Object3d* object, ID3D12GraphicsCommandList* commandList, D3D12_VERTEX_BUFFER_VIEW& vbView,
+		D3D12_INDEX_BUFFER_VIEW& ibView, UINT numIndices);
+	void MoveObject3d(Object3d* object, BYTE* key);
+
 
 #pragma region Material
 	//ヒープ設定
@@ -965,7 +995,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	//2枚目のテクスチャ
 	//テクスチャバッファの生成
-	ID3D12Resource* texBuff2 = nullptr;
+	//ID3D12Resource* texBuff2 = nullptr;
 	ComPtr<ID3D12Resource>texBuff2;
 	result = device->CreateCommittedResource(
 		&textureHeapProp,
@@ -1038,7 +1068,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	srvDesc2.Texture2D.MipLevels = textureResourceDesc2.MipLevels;
 
 	//ハンドルのさす位置にシェーダーリソースビュー作成
-	device->CreateShaderResourceView(texBuff2, &srvDesc2, srvHandle);
+	device->CreateShaderResourceView(texBuff2.Get(), &srvDesc2, srvHandle);
 
 
 #pragma endregion
@@ -1096,7 +1126,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	
 
 #pragma endregion
-
+	BYTE keys[256] = {};
+	BYTE oldkeys[256] = {};
 	//ゲームループ
 	while (true) {
 
@@ -1116,9 +1147,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//DirectX毎フレーム処理　ここから
 		//キーボード情報の取得
 		keyboard->Acquire();
-
+		for (int i = 0; i < 256; i++)
+		{
+			oldkeys[i] = keys[i];
+		}
 		//全キーの入力状態を取得する
-		BYTE keys[256] = {};
 		keyboard->GetDeviceState(sizeof(keys), keys);
 
 #pragma region ビュー変換
@@ -1153,16 +1186,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion
 		
 #pragma region テクスチャの切り替え
-		if (keys[DIK_SPACE])
+		if (keys[DIK_SPACE] == 0x80 && oldkeys[DIK_SPACE] == 0x00)
 		{
-			/*if (incrementSize == device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV))
+			if (incrementSize != 0)
 			{
 				incrementSize = 0;
 			}
-			else if (incrementSize == 0)
+			else
 			{
 				incrementSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			}*/
+			}
 		}
 		
 #pragma endregion
@@ -1212,7 +1245,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		viewport.TopLeftX = 0;
 		viewport.TopLeftY = 0;
 		viewport.MinDepth = 0.0f;
-		viewport.MaxDepth - 1.0f;
+		viewport.MaxDepth = 1.0f;
 
 		//ビューポート設定コマンドを、コマンドリストに積む
 		commandList->RSSetViewports(1, &viewport);
@@ -1326,4 +1359,89 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	UnregisterClass(w.lpszClassName, w.hInstance);
 
 	return 0;
+}
+
+void InitializeObject3d(Object3d* object, ID3D12Device* device)
+{
+	HRESULT result;
+
+	//定数バッファのヒープ設定
+	D3D12_HEAP_PROPERTIES heapProp{};
+	heapProp.Type = D3D12_HEAP_TYPE_UPLOAD;
+	//定数バッファのリソース設定
+	D3D12_RESOURCE_DESC resdesc{};
+	resdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	resdesc.Width = (sizeof(ConstBufferDataTransform) + 0xff) & ~0xff;
+	resdesc.Height = 1;
+	resdesc.DepthOrArraySize = 1;
+	resdesc.MipLevels = 1;
+	resdesc.SampleDesc.Count = 1;
+	resdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+	//定数バッファの生成
+	result = device->CreateCommittedResource(
+		&heapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&resdesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object->constBuffTransform)
+	);
+	assert(SUCCEEDED(result));
+
+	//定数バッファのマッピング
+	result = object->constBuffTransform->Map(0, nullptr, (void**)&object->constMapTransform);
+	assert(SUCCEEDED(result));
+}
+
+void UpdateObject3d(Object3d* object, XMMATRIX& matView, XMMATRIX& matProjection)
+{
+	XMMATRIX matScale, matRot, matTrans;
+
+	//スケール、回転、平行移動行列の計算
+	matScale = XMMatrixScaling(object->scale.x, object->scale.y, object->scale.z);
+	matRot = XMMatrixIdentity();
+	matRot *= XMMatrixRotationZ(object->rotation.z);
+	matRot *= XMMatrixRotationX(object->rotation.x);
+	matRot *= XMMatrixRotationY(object->rotation.y);
+	matTrans = XMMatrixTranslation(
+		object->position.x, object->position.y, object->position.z);
+
+	//ワールド行列の合成
+	object->matWorld = XMMatrixIdentity();
+	object->matWorld *= matScale;
+	object->matWorld *= matRot;
+	object->matWorld *= matTrans;
+
+	//親子オブジェクトがあれば
+	if (object->parent != nullptr) {
+		object->matWorld *= object->parent->matWorld;
+	}
+
+	//定数バッファへのデータ転送
+	object->constMapTransform->mat = object->matWorld * matView * matProjection;
+}
+
+void DrawObject3d(Object3d* object, ID3D12GraphicsCommandList* commandList, D3D12_VERTEX_BUFFER_VIEW& vbView,
+	D3D12_INDEX_BUFFER_VIEW& ibView, UINT numIndices) {
+	//頂点バッファの設定
+	commandList->IASetVertexBuffers(0, 1, &vbView);
+	//インデックスバッファの設定
+	commandList->IASetIndexBuffer(&ibView);
+	//定数バッファビューの設定コマンド
+	commandList->SetGraphicsRootConstantBufferView(2, object->constBuffTransform->GetGPUVirtualAddress());
+
+	//描画コマンド
+	commandList->DrawIndexedInstanced(numIndices, 1, 0, 0, 0);
+}
+
+void MoveObject3d(Object3d* object, BYTE* key)
+{
+	if (key[DIK_UP] || key[DIK_DOWN] || key[DIK_LEFT] || key[DIK_RIGHT])
+	{
+		if (key[DIK_UP]) { object->position.y += 1.0f; }
+		else if (key[DIK_DOWN]) { object->position.y -= 1.0f; }
+		if (key[DIK_RIGHT]) { object->position.x += 1.0f; }
+		else if (key[DIK_LEFT]) { object->position.x -= 1.0f; }
+	}
 }

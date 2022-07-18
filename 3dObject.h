@@ -19,8 +19,6 @@ using namespace DirectX;
 #pragma comment(lib,"dxguid.lib")
 #include<DirectXTex.h>
 
-#include <wrl.h>
-using namespace Microsoft::WRL;
 
 //定数バッファ用データ構造体（3D変換行列)
 struct ConstBufferDataTransform {
@@ -30,7 +28,7 @@ struct ConstBufferDataTransform {
 struct Object3d
 {
 	//定数バッファ（行列用）
-	ID3D12Resource* constBuffTransform;
+	//ID3D12Resource* constBuffTransform;
 	ComPtr<ID3D12Resource>constBuffTransform;
 	//定数バッファマップ（行列用）
 	ConstBufferDataTransform* constMapTransform;

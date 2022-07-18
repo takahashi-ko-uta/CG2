@@ -89,7 +89,7 @@ void DrawObject3d(Object3d* object, ID3D12GraphicsCommandList* commandList, D3D1
 	//インデックスバッファの設定
 	commandList->IASetIndexBuffer(&ibView);
 	//定数バッファビューの設定コマンド
-	commandList->SetGraphicsRootConstantBufferView(2, object->constBuffTransform->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(2, object->constBuffTransform.->GetGPUVirtualAddress());
 
 	//描画コマンド
 	commandList->DrawIndexedInstanced(numIndices, 1, 0, 0, 0);
