@@ -348,41 +348,43 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region 頂点データ
 	Vertex vertices[] = {
+		// x      y     z     法線  u     v
 		//前
-		{{ -5.0f,-5.0f,-5.0f},{},{0.0f,1.0f}},
-		{{ -5.0f, 5.0f,-5.0f},{},{0.0f,0.0f}},
-		{{  5.0f,-5.0f,-5.0f},{},{1.0f,1.0f}},
-		{{  5.0f, 5.0f,-5.0f},{},{1.0f,0.0f}},
+		{{-5.0f,-5.0f, -5.0f}, {}, {0.0f, 1.0f}}, // 左下
+		{{-5.0f, 5.0f, -5.0f},{}, {0.0f, 0.0f}}, // 左上
+		{{5.0f, -5.0f, -5.0f}, {},{1.0f, 1.0f}}, // 右下
+		{{5.0f, 5.0f, -5.0f},{}, {1.0f, 0.0f}}, // 右上
 
 		//後
-		{{ -5.0f,-5.0f, 5.0f},{},{0.0f,1.0f}},
-		{{ -5.0f, 5.0f, 5.0f},{},{0.0f,0.0f}},
-		{{  5.0f,-5.0f, 5.0f},{},{1.0f,1.0f}},
-		{{  5.0f, 5.0f, 5.0f},{},{1.0f,0.0f}},
+		{{-5.0f, 5.0f, 5.0f},{}, {0.0f, 0.0f}}, // 左上
+		{{-5.0f,-5.0f, 5.0f}, {},{0.0f, 1.0f}}, // 左下
+		{{5.0f, 5.0f,  5.0f}, {},{1.0f, 0.0f}}, // 右上
+		{{5.0f, -5.0f, 5.0f}, {},{1.0f, 1.0f}}, // 右下
 
 		//左
-		{{ -5.0f,-5.0f,-5.0f},{},{0.0f,1.0f}},
-		{{ -5.0f,-5.0f, 5.0f},{},{0.0f,0.0f}},
-		{{ -5.0f, 5.0f,-5.0f},{},{1.0f,1.0f}},
-		{{ -5.0f, 5.0f, 5.0f},{},{1.0f,0.0f}},
+		{{-5.0f,-5.0f, -5.0f},{}, {0.0f, 1.0f}}, // 左下
+		{{-5.0f, -5.0f, 5.0f}, {},{0.0f, 0.0f}}, // 左上
+		{{-5.0f, 5.0f, -5.0f},{}, {1.0f, 1.0f}}, // 右下
+		{{-5.0f, 5.0f, 5.0f}, {},{1.0f, 0.0f}}, // 右上
 
 		//右
-		{{  5.0f,-5.0f,-5.0f},{},{0.0f,1.0f}},
-		{{  5.0f,-5.0f, 5.0f},{},{0.0f,0.0f}},
-		{{  5.0f, 5.0f,-5.0f},{},{1.0f,1.0f}},
-		{{  5.0f, 5.0f, 5.0f},{},{1.0f,0.0f}},
+		{{5.0f, -5.0f, 5.0f}, {},{0.0f, 0.0f}}, // 左上
+		{{5.0f,-5.0f, -5.0f}, {},{0.0f, 1.0f}}, // 左下
+		{{5.0f, 5.0f, 5.0f}, {},{1.0f, 0.0f}}, // 右上
+		{{5.0f, 5.0f, -5.0f},{}, {1.0f, 1.0f}}, // 右下
 
 		//下
-		{{ -5.0f, 5.0f,-5.0f},{},{0.0f,1.0f}},
-		{{ -5.0f, 5.0f, 5.0f},{},{0.0f,0.0f}},
-		{{  5.0f, 5.0f,-5.0f},{},{1.0f,1.0f}},
-		{{  5.0f, 5.0f, 5.0f},{},{1.0f,0.0f}},
+		{{-5.0f, 5.0f, -5.0f}, {},{0.0f, 1.0f}}, // 左下
+		{{-5.0f, 5.0f,  5.0f}, {},{0.0f, 0.0f}}, // 左上
+		{{ 5.0f, 5.0f, -5.0f}, {},{1.0f, 1.0f}}, // 右下
+		{{ 5.0f, 5.0f,  5.0f}, {},{1.0f, 0.0f}}, // 右上
 
 		//上
-		{{ -5.0f,-5.0f,-5.0f},{},{0.0f,1.0f}},
-		{{ -5.0f,-5.0f, 5.0f},{},{0.0f,0.0f}},
-		{{  5.0f,-5.0f,-5.0f},{},{1.0f,1.0f}},
-		{{  5.0f,-5.0f, 5.0f},{},{1.0f,0.0f}},
+		{{-5.0f,-5.0f,  5.0f}, {},{0.0f, 0.0f}}, // 左上
+		{{-5.0f,-5.0f, -5.0f}, {},{0.0f, 1.0f}}, // 左下
+		{{ 5.0f,-5.0f,  5.0f}, {},{1.0f, 0.0f}}, // 右上
+		{{ 5.0f,-5.0f, -5.0f}, {},{1.0f, 1.0f}}, // 右下
+
 	};
 
 	//頂点データ全体のサイズ=頂点データ一つ分のサイズ*頂点データの要素数
@@ -758,76 +760,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region Transform
 	
-	{//コメントアウト
-		//ID3D12Resource* constBuffTransform0 = nullptr;
-	//ConstBufferDataTransform* constMapTransform0 = nullptr;
-	//{
-	//	//ヒープ設定
-	//	D3D12_HEAP_PROPERTIES cbHeapProp{};
-	//	cbHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;//GPUへの転送用
-
-	//	//リソース設定
-	//	D3D12_RESOURCE_DESC cbResourceDesc{};
-	//	cbResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	//	cbResourceDesc.Width = (sizeof(ConstBufferDataTransform) + 0xff) & ~0xff;
-	//	cbResourceDesc.Height = 1;
-	//	cbResourceDesc.DepthOrArraySize = 1;
-	//	cbResourceDesc.MipLevels = 1;
-	//	cbResourceDesc.SampleDesc.Count = 1;
-	//	cbResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-
-	//	//定数バッファの生成
-	//	result = device->CreateCommittedResource(
-	//		&cbHeapProp,//ヒープ設定
-	//		D3D12_HEAP_FLAG_NONE,
-	//		&cbResourceDesc,//リソース設定
-	//		D3D12_RESOURCE_STATE_GENERIC_READ,
-	//		nullptr,
-	//		IID_PPV_ARGS(&constBuffTransform0));
-	//	assert(SUCCEEDED(result));
-
-	//	//定数バッファのマッピング
-	//	result = constBuffTransform0->Map(0, nullptr, (void**)&constMapTransform0);//マッピング
-	//	assert(SUCCEEDED(result));
-	//}
-
-	//ID3D12Resource* constBuffTransform1 = nullptr;
-	//ConstBufferDataTransform* constMapTransform1 = nullptr;
-	//{
-	//	//ヒープ設定
-	//	D3D12_HEAP_PROPERTIES cbHeapProp{};
-	//	cbHeapProp.Type = D3D12_HEAP_TYPE_UPLOAD;//GPUへの転送用
-
-	//	//リソース設定
-	//	D3D12_RESOURCE_DESC cbResourceDesc{};
-	//	cbResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	//	cbResourceDesc.Width = (sizeof(ConstBufferDataTransform) + 0xff) & ~0xff;
-	//	cbResourceDesc.Height = 1;
-	//	cbResourceDesc.DepthOrArraySize = 1;
-	//	cbResourceDesc.MipLevels = 1;
-	//	cbResourceDesc.SampleDesc.Count = 1;
-	//	cbResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-
-	//	//定数バッファの生成
-	//	result = device->CreateCommittedResource(
-	//		&cbHeapProp,//ヒープ設定
-	//		D3D12_HEAP_FLAG_NONE,
-	//		&cbResourceDesc,//リソース設定
-	//		D3D12_RESOURCE_STATE_GENERIC_READ,
-	//		nullptr,
-	//		IID_PPV_ARGS(&constBuffTransform1));
-	//	assert(SUCCEEDED(result));
-
-	//	//定数バッファのマッピング
-	//	result = constBuffTransform1->Map(0, nullptr, (void**)&constMapTransform1);//マッピング
-	//	assert(SUCCEEDED(result));
-	//}
-
-
-	////単位行列を代入
-	//constMapTransform0->mat = XMMatrixIdentity();
-	//constMapTransform1->mat = XMMatrixIdentity();
-	}
 
 	//3Dオブジェクトの数
 	const size_t kObjectCount = 50;
@@ -892,81 +824,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
 #pragma endregion
 
-#pragma region ワールド変換
 
-	{//コメントアウト
-		////ワールド変換行列
-	//XMMATRIX matWorld;
-	//matWorld = XMMatrixIdentity();
-
-	//XMMATRIX matScala;
-	//matScala = XMMatrixScaling(1.0f, 0.5f, 1.0f);
-	//matWorld *= matScala;
-
-	//XMMATRIX matRot;
-	//matRot = XMMatrixIdentity();
-	//matRot *= XMMatrixRotationZ(XMConvertToRadians(0.0f));
-	//matRot *= XMMatrixRotationX(XMConvertToRadians(15.0f));
-	//matRot *= XMMatrixRotationY(XMConvertToRadians(30.0f));
-	//matWorld *= matRot;
-
-	//XMMATRIX matTrans;
-	//matTrans = XMMatrixTranslation(-50.0f, 0, 0);
-	//matWorld *= matTrans;
-
-	//constMapTransform->mat = matWorld * matView * matProjection;
-
-	////スケーリング倍率
-	//XMFLOAT3 scale;
-	////回転角
-	//XMFLOAT3 rotation;
-
-	////座標
-	//XMFLOAT3 position;
-
-	//scale = { 1.0f,1.0f,1.0f };
-	//rotation = { 0.0f,0.0f,0.0f };
-	//position = { 0.0f,0.0f,0.0f };
-
-
-	////ワールド変換行列
-	//XMMATRIX matWorld1;
-	//matWorld1 = XMMatrixIdentity();
-
-	//XMMATRIX matScala1;
-	//matScala1 = XMMatrixScaling(1.0f, 0.5f, 1.0f);
-	//matWorld1 *= matScala1;
-
-	//XMMATRIX matRot1;
-	//matRot1 = XMMatrixIdentity();
-	//matRot1 *= XMMatrixRotationZ(XMConvertToRadians(0.0f));
-	//matRot1 *= XMMatrixRotationX(XMConvertToRadians(15.0f));
-	//matRot1 *= XMMatrixRotationY(XMConvertToRadians(30.0f));
-	//matWorld1 *= matRot1;
-
-	//XMMATRIX matTrans1;
-	//matTrans1 = XMMatrixTranslation(-50.0f, 0, 0);
-	//matWorld1 *= matTrans1;
-
-	//constMapTransform->mat = matWorld1 * matView * matProjection;
-
-	////スケーリング倍率
-	//XMFLOAT3 scale1;
-	////回転角
-	//XMFLOAT3 rotation1;
-
-	////座標
-	//XMFLOAT3 position1;
-
-	//scale1 = { 1.0f,1.0f,1.0f };
-	//rotation1 = { 0.0f,0.0f,0.0f };
-	//position1 = { 0.0f,0.0f,0.0f };
-	}
-	
-	
-
-
-#pragma endregion
 
 #pragma endregion
 
@@ -1214,7 +1072,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	
 
 #pragma endregion
-
+	BYTE keys[256] = {};
+	BYTE oldkeys[256] = {};
 	//ゲームループ
 	while (true) {
 
@@ -1234,9 +1093,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//DirectX毎フレーム処理　ここから
 		//キーボード情報の取得
 		keyboard->Acquire();
-
+		for (int i = 0; i < 256; i++)
+		{
+			oldkeys[i] = keys[i];
+		}
 		//全キーの入力状態を取得する
-		BYTE keys[256] = {};
 		keyboard->GetDeviceState(sizeof(keys), keys);
 
 #pragma region ビュー変換
@@ -1329,16 +1190,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion
 		
 #pragma region テクスチャの切り替え
-		if (keys[DIK_SPACE])
+		if (keys[DIK_SPACE] == 0x80 && oldkeys[DIK_SPACE] == 0x00)
 		{
-			/*if (incrementSize == device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV))
+			if (incrementSize != 0)
 			{
 				incrementSize = 0;
 			}
-			else if (incrementSize == 0)
+			else
 			{
 				incrementSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			}*/
+			}
 		}
 		
 #pragma endregion
