@@ -17,6 +17,10 @@ using namespace DirectX;
 #pragma comment(lib,"dinput8.lib")
 #pragma comment(lib,"dxguid.lib")
 #include<DirectXTex.h>
+
+#include <wrl.h>
+using namespace Microsoft::WRL;
+
 void InitializeObject3d(Object3d* object,ID3D12Device* device)
 {
 	HRESULT result;
