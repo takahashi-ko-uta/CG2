@@ -40,6 +40,42 @@ LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 }
 #pragma endregion
 
+//定数バッファ用データ構造体(マテリアル)
+struct ConstBufferDataMaterial {
+	XMFLOAT4 color;//色(RGBA)
+};
+
+//定数バッファ用データ構造体（3D変換行列)
+struct ConstBufferDataTransform {
+	XMMATRIX mat; //3D変換行列
+};
+
+struct Object3d
+{
+	//定数バッファ（行列用）
+	//ID3D12Resource* constBuffTransform;
+	ComPtr<ID3D12Resource>constBuffTransform;
+	//定数バッファマップ（行列用）
+	ConstBufferDataTransform* constMapTransform;
+	//アフィン変換情報
+	XMFLOAT3 scale = { 1,1,1 };
+	XMFLOAT3 rotation = { 0,0,0 };
+	XMFLOAT3 position = { 0,0,0 };
+	//ワールド変換行列
+	XMMATRIX matWorld;
+	//親オブジェクトへのポインタ
+	Object3d* parent = nullptr;
+
+};
+
+void InitializeObject3d(Object3d* object, ID3D12Device* device);
+void UpdateObject3d(Object3d* object, XMMATRIX& matView, XMMATRIX& matProjection);
+void DrawObject3d(Object3d* object, ID3D12GraphicsCommandList* commandList, D3D12_VERTEX_BUFFER_VIEW& vbView,
+	D3D12_INDEX_BUFFER_VIEW& ibView, UINT numIndices);
+void MoveObject3d(Object3d* object, BYTE* key);
+
+
+
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	OutputDebugStringA("Hello DirectX!!\n");
@@ -87,18 +123,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region DirectXの初期化処理
 
-#ifdef DEBUG
+#ifdef _DEBUG
 //デバッグレイヤーをオンに
 	ID3D12Debug* debugController;
+	//ComPtr<ID3D12Debug>debugController;
 	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
 		debugController->EnableDebugLayer();
 	}
-#endif // DEBUG
+#endif
 
 	HRESULT result;
 	//ID3D12Device* device = nullptr;
 	//IDXGIFactory7* dxgiFactory = nullptr;
-	//IDXGISwapChain4* swapChain = nullptr;
+	//SwapChain4* swapChain = nullptr;
 	//ID3D12CommandAllocator* commandAllocator = nullptr;
 	//ID3D12GraphicsCommandList* commandList = nullptr;
 	//ID3D12CommandQueue* CommandQueue = nullptr;
@@ -721,13 +758,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	rootSignatureDesc.NumStaticSamplers = 1;
 
 	//シグネチャのシリアライズ
-	ID3D10Blob* rootSigBlob = nullptr;//-----------------------------------------------------------------------------------------
-	//ComPtr<ID3D10Blob>rootSigBlob;
+	//ID3D10Blob* rootSigBlob = nullptr;
+	ComPtr<ID3D10Blob>rootSigBlob;
 	result = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1_0, &rootSigBlob, &errorBlob);
 	assert(SUCCEEDED(result));
 	result = device->CreateRootSignature(0, rootSigBlob->GetBufferPointer(), rootSigBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
 	assert(SUCCEEDED(result));
-	rootSigBlob->Release();
 
 	//パイプラインにルートシグネチャをセット
 	pipelineDesc.pRootSignature = rootSignature.Get();
@@ -746,6 +782,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	struct ConstBufferDataMaterial {
 		XMFLOAT4 color;//色(RGBA)
 	};
+
 
 #pragma region Material
 	//ヒープ設定
@@ -1262,7 +1299,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//SRVヒープの設定コマンド
 		commandList->SetDescriptorHeaps(1, &srvHeap);
 		//SRVヒープの先頭ハンドルを取得(SRVを指しているはず)
-		D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = srvHeap->GetGPUDescriptorHandleForHeapStart();
+		D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = srvHeap->GetGPUDescriptorHandleForHeapStart();//-----------------------------------------------
 		
 		//2枚目を指し示すようにしたSRVハンドルをルートパラメータ1番に設定
 		srvGpuHandle.ptr += incrementSize;
@@ -1298,6 +1335,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		//画面に表示するバッファをフリップ(表裏の入れ替え)
 		result = swapChain->Present(1, 0);
+		result = device->GetDeviceRemovedReason();
 		assert(SUCCEEDED(result));
 #pragma endregion
 
@@ -1326,4 +1364,89 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	UnregisterClass(w.lpszClassName, w.hInstance);
 
 	return 0;
+}
+
+void InitializeObject3d(Object3d* object, ID3D12Device* device)
+{
+	HRESULT result;
+
+	//定数バッファのヒープ設定
+	D3D12_HEAP_PROPERTIES heapProp{};
+	heapProp.Type = D3D12_HEAP_TYPE_UPLOAD;
+	//定数バッファのリソース設定
+	D3D12_RESOURCE_DESC resdesc{};
+	resdesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	resdesc.Width = (sizeof(ConstBufferDataTransform) + 0xff) & ~0xff;
+	resdesc.Height = 1;
+	resdesc.DepthOrArraySize = 1;
+	resdesc.MipLevels = 1;
+	resdesc.SampleDesc.Count = 1;
+	resdesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+	//定数バッファの生成
+	result = device->CreateCommittedResource(
+		&heapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&resdesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(&object->constBuffTransform)
+	);
+	assert(SUCCEEDED(result));
+
+	//定数バッファのマッピング
+	result = object->constBuffTransform->Map(0, nullptr, (void**)&object->constMapTransform);
+	assert(SUCCEEDED(result));
+}
+
+void UpdateObject3d(Object3d* object, XMMATRIX& matView, XMMATRIX& matProjection)
+{
+	XMMATRIX matScale, matRot, matTrans;
+
+	//スケール、回転、平行移動行列の計算
+	matScale = XMMatrixScaling(object->scale.x, object->scale.y, object->scale.z);
+	matRot = XMMatrixIdentity();
+	matRot *= XMMatrixRotationZ(object->rotation.z);
+	matRot *= XMMatrixRotationX(object->rotation.x);
+	matRot *= XMMatrixRotationY(object->rotation.y);
+	matTrans = XMMatrixTranslation(
+		object->position.x, object->position.y, object->position.z);
+
+	//ワールド行列の合成
+	object->matWorld = XMMatrixIdentity();
+	object->matWorld *= matScale;
+	object->matWorld *= matRot;
+	object->matWorld *= matTrans;
+
+	//親子オブジェクトがあれば
+	if (object->parent != nullptr) {
+		object->matWorld *= object->parent->matWorld;
+	}
+
+	//定数バッファへのデータ転送
+	object->constMapTransform->mat = object->matWorld * matView * matProjection;
+}
+
+void DrawObject3d(Object3d* object, ID3D12GraphicsCommandList* commandList, D3D12_VERTEX_BUFFER_VIEW& vbView,
+	D3D12_INDEX_BUFFER_VIEW& ibView, UINT numIndices) {
+	//頂点バッファの設定
+	commandList->IASetVertexBuffers(0, 1, &vbView);
+	//インデックスバッファの設定
+	commandList->IASetIndexBuffer(&ibView);
+	//定数バッファビューの設定コマンド
+	commandList->SetGraphicsRootConstantBufferView(2, object->constBuffTransform->GetGPUVirtualAddress());
+
+	//描画コマンド
+	commandList->DrawIndexedInstanced(numIndices, 1, 0, 0, 0);
+}
+
+void MoveObject3d(Object3d* object, BYTE* key)
+{
+	if (key[DIK_UP] || key[DIK_DOWN] || key[DIK_LEFT] || key[DIK_RIGHT])
+	{
+		if (key[DIK_UP]) { object->position.y += 1.0f; }
+		else if (key[DIK_DOWN]) { object->position.y -= 1.0f; }
+		if (key[DIK_RIGHT]) { object->position.x += 1.0f; }
+		else if (key[DIK_LEFT]) { object->position.x -= 1.0f; }
+	}
 }
