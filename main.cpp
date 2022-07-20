@@ -275,7 +275,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	assert(SUCCEEDED(result));
 
 	//値を書き込むと自動的に転送される
-	constMapMaterial->color = XMFLOAT4(1, 0, 0, 0.5f);   //RGBAで半透明の赤
+
+
+	float R = 1.0f;
+	float G = 0.0f;
+	float B = 0.0f;
+	float alpha = 1.0f;
+	constMapMaterial->color = XMFLOAT4(R, G, B, alpha);   //RGBAで半透明の赤
 
 	//ルートパラメータの設定
 	D3D12_ROOT_PARAMETER rootParam = {};
@@ -493,9 +499,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 
-	float R = 1.0f;
-	float G = 0.0f;
-	float B = 0.0f;
+	BYTE key[256] = {};
+	BYTE oldkey[256] = {};
 
 	//ゲームループ
 	while (true) {
@@ -514,28 +519,43 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		keyboard->Acquire();
 
 		//全キーの入力状態を取得する
-		BYTE key[256] = {};
+		for ( int i = 0; i < 256; i++)
+		{
+			oldkey[i] = key[i];
+		}
+
 		keyboard->GetDeviceState(sizeof(key), key);
 
-		//数字の0キーが押されていたら
-		if(key[DIK_0])
+#pragma region 三角形の色を変える
+		if (key[DIK_1])
 		{
-			OutputDebugStringA("Hit 0\n"); //出力ウインドウに「Hit 0」と表示
+			R -= 0.01f;
+			if (R <= 0)
+			{
+				R = 1.0f;
+			}
+			G += 0.01f;
+			if (G >= 1)
+			{
+				G = 0.0f;
+			}
+		}
+		if (key[DIK_2] == 0x80 && oldkey[DIK_2] == 0x00)
+		{
+			if(alpha == 1.0f){
+				alpha = 0.3f;
+			}
+			else {
+				alpha = 1.0f;
+			}
 		}
 
-		R -= 0.01f;
-		if (R <= 0)
-		{
-			R = 1.0f;
-		}
 
-		G += 0.01f;
-		if(G >= 1)
-		{
-			G = 0.0f;
-		}
 		constMapMaterial->color.x = R;
 		constMapMaterial->color.y = G;
+		constMapMaterial->color.z = B;
+#pragma endregion
+		
 			
 		//バックバッファの番号を取得(2つなので０番か１番)
 		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
