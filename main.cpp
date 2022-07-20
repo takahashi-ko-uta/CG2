@@ -75,7 +75,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma region デバッグレイヤ
 	MSG msg{};//メッセージ
 
-#ifdef DEBUG
+#ifdef _DEBUG
 //デバッグレイヤーをオンに
 	ID3D12Debug* debugController;
 	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
