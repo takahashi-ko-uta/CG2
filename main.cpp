@@ -557,7 +557,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		constMapMaterial->color.w = alpha;
 #pragma endregion
 		
-			
+		
+
+
 		//バックバッファの番号を取得(2つなので０番か１番)
 		UINT bbIndex = swapChain->GetCurrentBackBufferIndex();
 
