@@ -554,6 +554,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		constMapMaterial->color.x = R;
 		constMapMaterial->color.y = G;
 		constMapMaterial->color.z = B;
+		constMapMaterial->color.w = alpha;
 #pragma endregion
 		
 			
