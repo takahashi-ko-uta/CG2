@@ -249,7 +249,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		{{ -50.0f,-50.0f,0.0f},{0.0f,1.0f}},
 		{{ -50.0f, 50.0f,0.0f},{0.0f,0.0f}},
 		{{  50.0f,-50.0f,0.0f},{1.0f,1.0f}},
-		{{  50.0f, 50.0f,0.0f},{1.0f,0.0f}},
+		//{{  50.0f, 50.0f,0.0f},{1.0f,0.0f}},
 	};
 
 	//インデックスデータ
@@ -574,7 +574,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 	//値を書き込むと自動的に転送される
-	constMapMaterial->color = XMFLOAT4(1, 0, 0, 0.5f);
+
+	float R = 1.0f;
+	float G = 0.0f;
+	float B = 0.0f;
+	float alpha = 1.0f;
+	constMapMaterial->color = XMFLOAT4(R, G, B, alpha);
 
 #pragma region 射影変換
 	constMapTransform->mat.r[0].m128_f32[0] = 2.0f / window_width;
@@ -602,7 +607,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	XMFLOAT3 target(0, 0, 0);
 
 	XMFLOAT3 up(0, 1, 0);
-
+	
+	float angle = 0.0f;
 	matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
 #pragma endregion
 
@@ -623,7 +629,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	XMFLOAT3 position;
 
 	scale = { 1.0f,0.5f,1.0f };
-	rotation = { 30.0f,15.0f,0.0f };
+	rotation = { 0.0f,0.0f,0.0f };
 	position = { 0.0f,0.0f,0.0f };
 
 #pragma endregion
@@ -766,8 +772,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ibView.Format = DXGI_FORMAT_R16_UINT;
 	ibView.SizeInBytes = sizeIB;
 
-	float angle = 0.0f;
-
+	
+	BYTE keys[256] = {};
+	BYTE oldkeys[256] = {};
 	//ゲームループ
 	while (true) {
 		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
@@ -779,14 +786,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (msg.message == WM_QUIT) {
 			break;
 		}
-
+	
 #pragma region DirectX毎フレーム処理
 		//DirectX毎フレーム処理　ここから
 		//キーボード情報の取得
 		keyboard->Acquire();
 
 		//全キーの入力状態を取得する
-		BYTE keys[256] = {};
+	
+		for (int i = 0; i < 256; i++)
+		{
+			oldkeys[i] = keys[i];
+		}
 		keyboard->GetDeviceState(sizeof(keys), keys);
 
 #pragma region ビュー変換
@@ -831,7 +842,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 			
 		}
-		
+
 		matScala = XMMatrixScaling(scale.x,scale.y,scale.z);
 
 		matRot = XMMatrixIdentity();
@@ -850,6 +861,41 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma endregion
 		
+#pragma region
+
+		if (keys[DIK_1])
+		{
+			R -= 0.01f;
+			if (R <= 0)
+			{
+				R = 1.0f;
+			}
+			G += 0.01f;
+			if (G >= 1)
+			{
+				G = 0.0f;
+			}
+		}
+		if (keys[DIK_2] == 0x80 && oldkeys[DIK_2] == 0x00)
+		{
+			if (alpha == 1.0f) {
+				alpha = 0.3f;
+			}
+			else {
+				alpha = 1.0f;
+			}
+		}
+
+
+		constMapMaterial->color.x = R;
+		constMapMaterial->color.y = G;
+		constMapMaterial->color.z = B;
+		constMapMaterial->color.w = alpha;
+
+#pragma endregion
+
+
+
 		//全頂点に対して
 		for (int i = 0; i < _countof(vertices); i++) {
 			vertMap[i] = vertices[i];//座標をコピー
