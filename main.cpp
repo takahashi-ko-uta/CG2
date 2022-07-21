@@ -290,9 +290,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		{-0.5f,-0.5f,0.0f},//左下
 		{-0.5f,+0.5f,0.0f},//左上
 		{+0.5f,-0.5f,0.0f},//右下
+		{+0.5f,+0.5f,0.0f},//右下
 	};
+
 	//頂点データ全体のサイズ = 頂点データ1つ分のサイズ * 頂点データの要素数
 	UINT sizeVB = static_cast<UINT>(sizeof(XMFLOAT3) * _countof(vertices));
+
+	//インデックスデータ
+	uint16_t indices[] =
+	{
+		0,1,2,
+		1,2,3,
+	};
 
 	//頂点バッファの設定
 	D3D12_HEAP_PROPERTIES heapProp{};		//ヒープ設定
