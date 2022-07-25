@@ -89,7 +89,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//ウィンドウクラスの生成
 	WNDCLASSEX w{};
 	w.cbSize = sizeof(WNDCLASSEX);
-	w.lpfnWndProc = (WNDPROC)WindowProc;    //ウィンドウプロシージャを指定
+	w.lpfnWndProc = (WNDPROC)WindowProc;    //ウィンドウプロシージャを指
 	w.lpszClassName = L"DirectXGame";       //ウィンドウクラス名
 	w.hInstance = GetModuleHandle(nullptr); //ウィンドウハンドル
 	w.hCursor = LoadCursor(NULL, IDC_ARROW);//カーソル指定
