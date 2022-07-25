@@ -89,7 +89,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//ウィンドウクラスの生成
 	WNDCLASSEX w{};
 	w.cbSize = sizeof(WNDCLASSEX);
-	w.lpfnWndProc = (WNDPROC)WindowProc;    //ウィンドウプロシージャを指
+	w.lpfnWndProc = (WNDPROC)WindowProc;    //ウィンドウプロシージャを指定
 	w.lpszClassName = L"DirectXGame";       //ウィンドウクラス名
 	w.hInstance = GetModuleHandle(nullptr); //ウィンドウハンドル
 	w.hCursor = LoadCursor(NULL, IDC_ARROW);//カーソル指定
@@ -281,7 +281,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;//シェーダーから見えるように
 	srvHeapDesc.NumDescriptors = kMaxSRVCount;
 	//設定をもとにSRV用デスクリプターヒープを生成
-	ID3D12DescriptorHeap* srvHeap = nullptr;//---------------------------------------------------------------------------------------
+	ID3D12DescriptorHeap* srvHeap = nullptr;//--------------------------------------------------------------------------------------
 	//ComPtr<ID3D12DescriptorHeap>srvHeap;
 	result = device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srvHeap));
 	assert(SUCCEEDED(result));
