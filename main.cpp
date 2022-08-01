@@ -130,10 +130,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		debugController->EnableDebugLayer();
 	}
 #endif
-	ID3D12Debug* debugController;
-	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
-		debugController->EnableDebugLayer();
-	}
+
+
+
 	HRESULT result;
 	//ID3D12Device* device = nullptr;
 	//IDXGIFactory7* dxgiFactory = nullptr;
@@ -283,17 +282,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;//シェーダーから見えるように
 	srvHeapDesc.NumDescriptors = kMaxSRVCount;
 	//設定をもとにSRV用デスクリプターヒープを生成
-	//ID3D12DescriptorHeap* srvHeap = nullptr;//--------------------------------------------------------------------------------------
+	//ID3D12DescriptorHeap* srvHeap = nullptr;
 	ComPtr<ID3D12DescriptorHeap>srvHeap;
 	result = device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srvHeap));
 	assert(SUCCEEDED(result));
 
-	/*ID3D12DescriptorHeap* ppHeap[] = { srvHeap.Get()};
-	commandList->SetDescriptorHeaps(_countof(ppHeap), ppHeap);*/
-
-
-	//SRVヒープの先頭ハンドルを取得
-	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
+	////SRVヒープの先頭ハンドルを取得
+	//D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
 	
 	//デスクリプターヒープの生成
 	device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap));
@@ -858,8 +853,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			float randomY = ranY(engine);
 			float randomZ = ranZ(engine);
 			object3ds[i].rotation = { XMConvertToRadians(randomX),XMConvertToRadians(randomY),XMConvertToRadians(randomZ) };
+			//object3ds[i].rotation = { 0.0f, 0.0f,XMConvertToRadians(30.0f) };
+
 			//親オブジェクトに対してZ方向に-8.0ずらす
+			//object3ds[i].position = { 0.0f, 0.0f, -8.0f };
 			object3ds[i].position = { randomX,randomY,randomZ };
+
 		}
 	}
 #pragma endregion
@@ -927,7 +926,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// WICテクスチャのロード
 	result = LoadFromWICFile(
-		L"Resources/reimu.png",   //「Resources」フォルダの「texture.png」
+		L"Resources/reimu.jpg",   //「Resources」フォルダの「texture.png」
 		WIC_FLAGS_NONE,
 		&metadata2, scratchImg2);
 
@@ -1058,29 +1057,36 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma endregion
 
 #pragma region シェーダリソースビューの作成
-	// シェーダリソースビュー設定
+	
+
+
+	//SRVヒープの先頭ハンドルを取得
+	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
+
+	// シェーダリソースビュー設定（1枚目）
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
 	srvDesc.Format = textureResourceDesc.Format;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MipLevels = textureResourceDesc.MipLevels;
 
-	//ハンドルのさす位置にシェーダーリソースビュー作成
+	//ハンドルのさす位置にシェーダーリソースビュー作成（1枚目）
 	device->CreateShaderResourceView(texBuff.Get(), &srvDesc, srvHandle);
 
 	//1つハンドルを進める
 	UINT incrementSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	srvHandle.ptr += incrementSize;
-	//srvHandle.ptr = 0;
 
-	// シェーダリソースビュー設定
+	// シェーダリソースビュー設定（2枚目）
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc2{};
 	srvDesc2.Format = textureResourceDesc2.Format;
 	srvDesc2.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc2.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc2.Texture2D.MipLevels = textureResourceDesc2.MipLevels;
 
-	//ハンドルのさす位置にシェーダーリソースビュー作成
+	
+
+	//ハンドルのさす位置にシェーダーリソースビュー作成（2枚目）
 	device->CreateShaderResourceView(texBuff2.Get(), &srvDesc2, srvHandle);
 
 
@@ -1296,6 +1302,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		commandList->IASetIndexBuffer(&ibView);
 #pragma endregion
 
+
+
 #pragma region CBVの設定コマンド
 		//定数バッファビュー(CBV)の設定コマンド
 		commandList->SetGraphicsRootConstantBufferView(0, constBuffMaterial->GetGPUVirtualAddress());
@@ -1303,14 +1311,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region SRVヒープ
 		//SRVヒープの設定コマンド
-		commandList->SetDescriptorHeaps(1, &srvHeap);
-		
+		//commandList->SetDescriptorHeaps(1, &srvHeap);-----------------------------------------------------------------------------
+		ID3D12DescriptorHeap* ppHeap[] = { srvHeap.Get() };
+		commandList->SetDescriptorHeaps(_countof(ppHeap), ppHeap);
+
+
 		//SRVヒープの先頭ハンドルを取得(SRVを指しているはず)
-		D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = srvHeap->GetGPUDescriptorHandleForHeapStart();//-----------------------------------------------
+		D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = srvHeap->GetGPUDescriptorHandleForHeapStart();
 
 		//2枚目を指し示すようにしたSRVハンドルをルートパラメータ1番に設定
 		srvGpuHandle.ptr += incrementSize;
-		
 		commandList->SetGraphicsRootDescriptorTable(1, srvGpuHandle);
 
 
@@ -1319,7 +1329,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		{
 			DrawObject3d(&object3ds[i], commandList.Get(), vbView, ibView, _countof(indices));
 		}
-		
+
 #pragma endregion
 	
 #pragma endregion
@@ -1435,7 +1445,8 @@ void UpdateObject3d(Object3d* object, XMMATRIX& matView, XMMATRIX& matProjection
 }
 
 void DrawObject3d(Object3d* object, ID3D12GraphicsCommandList* commandList, D3D12_VERTEX_BUFFER_VIEW& vbView,
-	D3D12_INDEX_BUFFER_VIEW& ibView, UINT numIndices) {
+	D3D12_INDEX_BUFFER_VIEW& ibView, UINT numIndices)
+{
 	//頂点バッファの設定
 	commandList->IASetVertexBuffers(0, 1, &vbView);
 	//インデックスバッファの設定
