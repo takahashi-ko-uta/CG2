@@ -124,14 +124,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma region DirectXの初期化処理
 
 #ifdef _DEBUG
-//デバッグレイヤーをオンに
+	//デバッグレイヤーをオンに
 	ID3D12Debug* debugController;
-	//ComPtr<ID3D12Debug>debugController;
 	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
 		debugController->EnableDebugLayer();
 	}
 #endif
-
+	ID3D12Debug* debugController;
+	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
+		debugController->EnableDebugLayer();
+	}
 	HRESULT result;
 	//ID3D12Device* device = nullptr;
 	//IDXGIFactory7* dxgiFactory = nullptr;
@@ -285,6 +287,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ComPtr<ID3D12DescriptorHeap>srvHeap;
 	result = device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srvHeap));
 	assert(SUCCEEDED(result));
+
+	/*ID3D12DescriptorHeap* ppHeap[] = { srvHeap.Get()};
+	commandList->SetDescriptorHeaps(_countof(ppHeap), ppHeap);*/
+
 
 	//SRVヒープの先頭ハンドルを取得
 	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = srvHeap->GetCPUDescriptorHandleForHeapStart();
@@ -1298,9 +1304,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma region SRVヒープ
 		//SRVヒープの設定コマンド
 		commandList->SetDescriptorHeaps(1, &srvHeap);
+		
 		//SRVヒープの先頭ハンドルを取得(SRVを指しているはず)
 		D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = srvHeap->GetGPUDescriptorHandleForHeapStart();//-----------------------------------------------
-		
+
 		//2枚目を指し示すようにしたSRVハンドルをルートパラメータ1番に設定
 		srvGpuHandle.ptr += incrementSize;
 		
