@@ -281,8 +281,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;//シェーダーから見えるように
 	srvHeapDesc.NumDescriptors = kMaxSRVCount;
 	//設定をもとにSRV用デスクリプターヒープを生成
-	ID3D12DescriptorHeap* srvHeap = nullptr;//--------------------------------------------------------------------------------------
-	//ComPtr<ID3D12DescriptorHeap>srvHeap;
+	//ID3D12DescriptorHeap* srvHeap = nullptr;//--------------------------------------------------------------------------------------
+	ComPtr<ID3D12DescriptorHeap>srvHeap;
 	result = device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srvHeap));
 	assert(SUCCEEDED(result));
 
