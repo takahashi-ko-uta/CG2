@@ -15,7 +15,12 @@ using namespace DirectX;
 #include<dinput.h>
 #pragma comment(lib,"dinput8.lib")
 #pragma comment(lib,"dxguid.lib")
+
+#pragma warning (push)
+#pragma warning(disable: 26812 )
 #include<DirectXTex.h>
+#pragma warning (pop)
+
 const float PI = 3.141592f;
 
 #include "3dObject.h"
@@ -54,15 +59,15 @@ struct Object3d
 {
 	//定数バッファ（行列用）
 	//ID3D12Resource* constBuffTransform;
-	ComPtr<ID3D12Resource>constBuffTransform;
+	ComPtr<ID3D12Resource>constBuffTransform = nullptr;
 	//定数バッファマップ（行列用）
-	ConstBufferDataTransform* constMapTransform;
+	ConstBufferDataTransform* constMapTransform = nullptr;
 	//アフィン変換情報
 	XMFLOAT3 scale = { 1,1,1 };
 	XMFLOAT3 rotation = { 0,0,0 };
 	XMFLOAT3 position = { 0,0,0 };
 	//ワールド変換行列
-	XMMATRIX matWorld;
+	XMMATRIX matWorld = XMMatrixIdentity();
 	//親オブジェクトへのポインタ
 	Object3d* parent = nullptr;
 
@@ -73,9 +78,6 @@ void UpdateObject3d(Object3d* object, XMMATRIX& matView, XMMATRIX& matProjection
 void DrawObject3d(Object3d* object, ID3D12GraphicsCommandList* commandList, D3D12_VERTEX_BUFFER_VIEW& vbView,
 	D3D12_INDEX_BUFFER_VIEW& ibView, UINT numIndices);
 void MoveObject3d(Object3d* object, BYTE* key);
-
-
-
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	OutputDebugStringA("Hello DirectX!!\n");
@@ -1361,9 +1363,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		CommandQueue->Signal(fence.Get(), ++fenceVal);
 		if (fence->GetCompletedValue() != fenceVal) {
 			HANDLE event = CreateEvent(nullptr, false, false, nullptr);
-			fence->SetEventOnCompletion(fenceVal, event);
-			WaitForSingleObject(event, INFINITE);
-			CloseHandle(event);
+			if(event != 0)
+			{
+				fence->SetEventOnCompletion(fenceVal, event);
+				WaitForSingleObject(event, INFINITE);
+				CloseHandle(event);
+			}
 		}
 		//キューをクリア
 		result = commandAllocator->Reset();
